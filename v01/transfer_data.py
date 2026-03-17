@@ -282,17 +282,17 @@ def row_to_dict_MDD(row):
                         "links:NBActorCode": MNBctorCode,
                         "links:certificateRevisionNumber": certificate_revision,
                         "links:certificateType": certificate_type
-                    },
-                    "basicudi:humanProductCheck": is_humanProduct,
-                    "basicudi:medicinalProductCheck": is_medicinalProduct,
-                    "basicudi:type": productType,
-                    "commondi:active": is_active,
-                    "commondi:administeringMedicine": is_administering,
-                    "commondi:implantable": is_implantable,
-                    "commondi:measuringFunction": is_measuring,
-                    "commondi:reusable": is_reusable,
-                    "eudi:applicableLegislation": "MDD"
-    }}}}
+                    }},
+                "basicudi:humanProductCheck": is_humanProduct,
+                "basicudi:medicinalProductCheck": is_medicinalProduct,
+                "basicudi:type": productType,
+                "commondi:active": is_active,
+                "commondi:administeringMedicine": is_administering,
+                "commondi:implantable": is_implantable,
+                "commondi:measuringFunction": is_measuring,
+                "commondi:reusable": is_reusable,
+                "eudi:applicableLegislation": "MDD"           
+    }}}
 
 # ========= 2) 小工具 =========
 def qname(tag: str) -> str:

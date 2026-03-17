@@ -217,7 +217,7 @@ def row_to_dict_MDD(row):
     criticalWarnings = row["tc_jsb730"] if pd.notna(row["tc_jsb730"]) else None
     warningValue = "CW010" if criticalWarnings == "Consult Instruction for Use" else None
     certificate_MDD = row["tc_jsb170"] if pd.notna(row["tc_jsb170"]) else None
-    certificate_expiry_MDD = row["tc_jsb710"].replace("/", "-") if pd.notna(row["tc_jsb710"]) else None
+    certificate_expiry_MDD = row["tc_jsb710"].split(" ")[0] if pd.notna(row["tc_jsb710"]) else None
     MNBctorCode = "2195"
     certificate_revision = row["tc_jsb180"] if pd.notna(row["tc_jsb180"]) else None
     certificate_type = "MDD_"+row["tc_jsb080"].split()[1]
@@ -250,15 +250,13 @@ def row_to_dict_MDD(row):
                 },
                 "udidi:criticalWarnings": {
                     "commondi:warning": {
-                        "commondi:warningValue": {
-                            "commondi:warningValue": warningValue
-                        },
                         "commondi:comments": {
                                 "lsn:name":{
                                     "lsn:language": "ANY",
                                     "lsn:textValue": criticalWarnings
                                 }
-                        }
+                        },
+                        "commondi:warningValue": warningValue
                     }
                 },
                 "udidi:numberOfReuses": numberOfReuses,

@@ -18,8 +18,21 @@ def excel_to_df(file_path, sheet_name=None):
 def df_to_xml_files(devices, output_dir):
     import os
     os.makedirs(output_dir, exist_ok=True)
+    # 待 Bulk Upload 驗證 @2026-03-17
+    # push_dict = wrap_with_push(
+    #     devices,
+    #     service_id="DEVICE",
+    #     service_operation="POST",
+    #     service_access_token="YOUR_SECURITY_TOKEN",
+    #     sender_actor_code="YOUR_SRN_OR_ACTOR_ID",
+    #     sender_node_id="YOUR_PARTY_ID",
+    #     xsd_version="3.0.25",
+    # )
+
+    device_nodes = [d["device:Device"] for d in devices]
+
     push_dict = wrap_with_push(
-        devices,
+        {"device:Device": device_nodes},
         service_id="DEVICE",
         service_operation="POST",
         service_access_token="YOUR_SECURITY_TOKEN",

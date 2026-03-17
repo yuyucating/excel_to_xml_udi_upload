@@ -10,7 +10,7 @@ def excel_to_df(file_path, sheet_name=None):
         sheet_name = "p_zta"
 
     # 讀取 Excel 資料，以 str 格式讀取 tc_jsb001 欄位 (UDI-DI code)
-    df = pd.read_excel(file_path, sheet_name=sheet_name, dtype={'tc_jsb001': str})
+    df = pd.read_excel(file_path, sheet_name=sheet_name, dtype={'tc_jsb001': str, 'tc_jsb710': str})
     # 移除非MDD/MDR產品 (tc_jsb030: 標記註冊類型, tc_jsb080: 等級, tc_jsb150: 證書號碼)
     df_eu = df.dropna(subset=["tc_jsb030", "tc_jsb080", "tc_jsb150"])
     return df_eu
@@ -85,7 +85,7 @@ def row_to_dict_MDR(row):
     i_DICode = row["tc_jsb001"] if pd.notna(row["tc_jsb001"]) else None
     i_Entity = "GS1"
     # enum: ON_EU_MARKET, NO_LONGER_PLACED_ON_EU_MARKET, NOT_INTENDED_FOR_EU_MARKET
-    udi_status = row["tc_jsb270"].upper().replace("THE","").replace(" ", "_") if pd.notna(row["tc_jsb270"]) else None
+    udi_status = row["tc_jsb270"].upper().replace("EU ","").replace(" ", "_") if pd.notna(row["tc_jsb270"]) else None
     emdn_code = row["tc_jsb190"] if pd.notna(row["tc_jsb190"]) else None
     is_pi_lotNumber = "true" if row["tc_jsb2401"] == "Y" else "false"
     is_pi_serialNumber = "true" if row["tc_jsb2411"] == "Y" else "false"
@@ -202,11 +202,13 @@ def row_to_dict_MDD(row):
     is_reprocessed = "true" if row["tc_jsb620"] == "Y" else "false"
     spec = row["tc_jsb430"]+" "+row["tc_jsb440"] if pd.notna(row["tc_jsb430"]) and pd.notna(row["tc_jsb440"]) else None
     criticalWarnings = row["tc_jsb730"] if pd.notna(row["tc_jsb730"]) else None
+    warningValue = "CW010" if criticalWarnings == "Consult Instruction for Use" else None
     certificate_MDD = row["tc_jsb170"] if pd.notna(row["tc_jsb170"]) else None
-    certificate_expiry_MDD = row["tc_jsb710"] if pd.notna(row["tc_jsb710"]) else None
+    certificate_expiry_MDD = row["tc_jsb710"].replace("/", "-") if pd.notna(row["tc_jsb710"]) else None
     MNBctorCode = "2195"
     certificate_revision = row["tc_jsb180"] if pd.notna(row["tc_jsb180"]) else None
     certificate_type = "MDD_"+row["tc_jsb080"].split()[1]
+    
 
     return {
         "device:Device": {
@@ -235,6 +237,9 @@ def row_to_dict_MDD(row):
                 },
                 "udidi:criticalWarnings": {
                     "commondi:warning": {
+                        "commondi:warningValue": {
+                            "commondi:warningValue": warningValue
+                        },
                         "commondi:comments": {
                                 "lsn:name":{
                                     "lsn:language": "ANY",

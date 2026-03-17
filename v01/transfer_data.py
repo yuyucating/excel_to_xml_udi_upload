@@ -164,7 +164,7 @@ def row_to_dict_MDR(row):
                 "udidi:tradeNames": {
                     "lsn:name":{
                         "lsn:language": tradeName_lang,
-                        "lsn:value": tradeName
+                        "lsn:textValue": tradeName
                     }
                 },
                 "udidi:numberOfReuses": numberOfReuses,
@@ -245,7 +245,7 @@ def row_to_dict_MDD(row):
                 "udidi:tradeNames": {
                     "lsn:name":{
                         "lsn:language": tradeName_lang,
-                        "lsn:value": tradeName
+                        "textValue": tradeName
                     }
                 },
                 "udidi:criticalWarnings": {

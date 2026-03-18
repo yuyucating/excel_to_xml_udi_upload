@@ -8,6 +8,10 @@ from tkinter import ttk, filedialog, messagebox
 
 from transfer_data import export_excel_to_xml
 
+def get_app_dir():
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
 
 class UDIUploadUI:
     def __init__(self, root):
@@ -16,7 +20,7 @@ class UDIUploadUI:
         self.root.geometry("720x420")
         self.root.minsize(640, 360)
 
-        self.app_dir = os.path.dirname(os.path.abspath(__file__))
+        self.app_dir = get_app_dir()
         self.settings_file = os.path.join(self.app_dir, "app_settings.json")
         self.settings = self.load_settings()
 
@@ -25,6 +29,8 @@ class UDIUploadUI:
         self.output_dir = tk.StringVar()
 
         self._build_ui()
+
+    
 
     def load_settings(self):
         default_settings = {

@@ -1,8 +1,11 @@
+import os
+import sys
+import subprocess
+import traceback
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-import traceback
 
-from transfer_data import excel_to_df, df_to_dict, df_to_xml_files
+from transfer_data import export_excel_to_xml
 
 
 class UDIUploadUI:
@@ -32,23 +35,19 @@ class UDIUploadUI:
         form = ttk.LabelFrame(container, text="基本設定", padding=12)
         form.pack(fill="x")
 
-        # Excel 檔案
         ttk.Label(form, text="Excel 檔案：").grid(row=0, column=0, sticky="w", pady=6)
         ttk.Entry(form, textvariable=self.excel_path, width=62).grid(row=0, column=1, sticky="ew", padx=8)
         ttk.Button(form, text="瀏覽", command=self.select_excel).grid(row=0, column=2, pady=6)
 
-        # 工作表
         ttk.Label(form, text="工作表名稱：").grid(row=1, column=0, sticky="w", pady=6)
         ttk.Entry(form, textvariable=self.sheet_name, width=20).grid(row=1, column=1, sticky="w", padx=8)
 
-        # 輸出資料夾
         ttk.Label(form, text="輸出資料夾：").grid(row=2, column=0, sticky="w", pady=6)
         ttk.Entry(form, textvariable=self.output_dir, width=62).grid(row=2, column=1, sticky="ew", padx=8)
         ttk.Button(form, text="瀏覽", command=self.select_output_dir).grid(row=2, column=2, pady=6)
 
         form.columnconfigure(1, weight=1)
 
-        # 開始按鈕
         button_frame = ttk.Frame(container)
         button_frame.pack(fill="x", pady=16)
 
@@ -56,12 +55,11 @@ class UDIUploadUI:
         button_group.pack(anchor="center")
 
         self.start_button = ttk.Button(button_group, text="開始", command=self.start_process)
-        self.start_button.pack(side="left", padx=(0, 8), ipadx=18, ipady=8)
+        self.start_button.pack(side="left", padx=6, ipadx=18, ipady=8)
 
         self.open_output_button = ttk.Button(button_group, text="開啟輸出資料夾", command=self.open_output_dir)
-        self.open_output_button.pack(side="left", ipadx=12, ipady=8)
+        self.open_output_button.pack(side="left", padx=6, ipadx=12, ipady=8)
 
-        # 狀態 / 記錄區
         log_frame = ttk.LabelFrame(container, text="執行狀態", padding=12)
         log_frame.pack(fill="both", expand=True)
 
@@ -70,7 +68,6 @@ class UDIUploadUI:
         self.log("UI 已啟動，請選擇 Excel 檔案與輸出資料夾。")
 
     def select_excel(self):
-        import os
         path = filedialog.askopenfilename(
             title="選擇 Excel 檔案",
             filetypes=[("Excel Files", "*.xlsx *.xls")]
@@ -79,10 +76,9 @@ class UDIUploadUI:
             self.excel_path.set(path)
             self.log(f"已選擇 Excel：{path}")
 
-            # 預設將輸出資料夾帶入 Excel 檔案所在位置
             base_dir = os.path.dirname(path)
             default_output_dir = os.path.join(base_dir, "output_xml")
-            self.output_dir.set(default_output_dir) 
+            self.output_dir.set(default_output_dir)
             self.log(f"輸出資料夾已自動帶入：{default_output_dir}")
 
     def select_output_dir(self):
@@ -92,10 +88,6 @@ class UDIUploadUI:
             self.log(f"已選擇輸出資料夾：{path}")
 
     def open_output_dir(self):
-        import os
-        import subprocess
-        import sys
-
         output_dir = self.output_dir.get().strip()
         if not output_dir:
             messagebox.showwarning("缺少資料", "目前沒有可開啟的輸出資料夾。")
@@ -112,10 +104,11 @@ class UDIUploadUI:
                 subprocess.run(["open", output_dir], check=False)
             else:
                 subprocess.run(["xdg-open", output_dir], check=False)
+
             self.log(f"已開啟輸出資料夾：{output_dir}")
         except Exception as e:
             self.log(f"開啟輸出資料夾失敗：{e}")
-            messagebox.showerror("錯誤", f"無法開啟輸出資料夾：{e}")
+            messagebox.showerror("錯誤", f"無法開啟輸出資料夾：\n{e}")
 
     def start_process(self):
         if not self.excel_path.get().strip():
@@ -133,21 +126,22 @@ class UDIUploadUI:
             self.log(f"工作表名稱：{self.sheet_name.get()}")
             self.log(f"輸出資料夾：{self.output_dir.get()}")
 
-            df = excel_to_df(self.excel_path.get(), self.sheet_name.get().strip() or None)
-            self.log(f"已讀取資料，共 {len(df)} 筆符合 MDD/MDR 篩選條件。")
+            result = export_excel_to_xml(
+                self.excel_path.get(),
+                self.output_dir.get(),
+                self.sheet_name.get().strip() or None
+            )
 
-            devices = df_to_dict(df)
-            self.log(f"已完成資料轉換，共 {len(devices)} 筆裝置資料待輸出。")
-
-            df_to_xml_files(devices, self.output_dir.get())
-            self.log("XML 檔案輸出完成。")
-            messagebox.showinfo("完成", "XML 檔案已成功產生。")
+            self.log(f'已讀取資料，共 {result["df_count"]} 筆符合條件。')
+            self.log(f'已轉換裝置資料，共 {result["device_count"]} 筆。')
+            self.log(f'XML 檔案輸出完成：{result["output_path"]}')
+            messagebox.showinfo("完成", f'XML 檔案已成功產生：\n{result["output_path"]}')
 
         except Exception as e:
             self.log("執行失敗。")
             self.log(str(e))
             self.log(traceback.format_exc())
-            messagebox.showerror("錯誤", f"執行失敗：{e}")
+            messagebox.showerror("錯誤", f"執行失敗：\n{e}")
         finally:
             self.start_button.config(state="normal")
 

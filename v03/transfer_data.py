@@ -49,16 +49,16 @@ def generate_output_path(output_dir):
     return output_path
 
 
-def df_to_xml_files(devices, output_dir):
+def df_to_xml_files(devices, output_dir, config):
     device_nodes = [d["device:Device"] for d in devices]
 
     push_dict = wrap_with_push(
         {"device:Device": device_nodes},
         service_id="DEVICE",
         service_operation="POST",
-        service_access_token="YOUR_SECURITY_TOKEN",
-        sender_actor_code="YOUR_SRN_OR_ACTOR_ID",
-        sender_node_id="YOUR_PARTY_ID",
+        service_access_token=config["service_access_token"],
+        sender_actor_code=config["sender_actor_code"],
+        sender_node_id=config["sender_node_id"],
         xsd_version="3.0.25",
     )
 
@@ -69,10 +69,10 @@ def df_to_xml_files(devices, output_dir):
     return output_path
 
 
-def export_excel_to_xml(file_path, output_dir, sheet_name=None):
+def export_excel_to_xml(file_path, output_dir, sheet_name=None, config=None):
     df = excel_to_df(file_path, sheet_name)
     devices = df_to_dict(df)
-    output_path = df_to_xml_files(devices, output_dir)
+    output_path = df_to_xml_files(devices, output_dir, config)
 
     return {
         "df_count": len(df),

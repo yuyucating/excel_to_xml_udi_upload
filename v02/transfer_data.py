@@ -455,7 +455,8 @@ NS = {
 for prefix, uri in NS.items():
     ET.register_namespace(prefix, uri)
 
-df = excel_to_df(r"I:\研發中心\法規課\private\A0_個人資料夾\Una Kuo\31. UDI Upload\cimi290 匯出範例_test0312.xlsx")
-devices = df_to_dict(df)
+if __name__ == "__main__":
+    df = excel_to_df(r"I:\研發中心\法規課\private\A0_個人資料夾\Una Kuo\31. UDI Upload\cimi290 匯出範例_test0312.xlsx")
+    devices = df_to_dict(df)
 
-df_to_xml_files(devices, r"I:\研發中心\法規課\private\A0_個人資料夾\Una Kuo\31. UDI Upload\output_xml")
+    df_to_xml_files(devices, r"I:\研發中心\法規課\private\A0_個人資料夾\Una Kuo\31. UDI Upload\output_xml")

@@ -1,5 +1,8 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
+import traceback
+
+from transfer_data import excel_to_df, df_to_dict, df_to_xml_files
 
 
 class UDIUploadUI:
@@ -71,7 +74,8 @@ class UDIUploadUI:
             self.log(f"已選擇 Excel：{path}")
 
             # 預設將輸出資料夾帶入 Excel 檔案所在位置
-            default_output_dir = os.path.dirname(path)
+            base_dir = os.path.dirname(path)
+            default_output_dir = os.path.join(base_dir, "output_xml")
             self.output_dir.set(default_output_dir)
             self.log(f"輸出資料夾已自動帶入：{default_output_dir}")
 
@@ -90,13 +94,30 @@ class UDIUploadUI:
             messagebox.showwarning("缺少資料", "請先選擇輸出資料夾。")
             return
 
-        # 這裡先做 UI 示範，後續再串接你的既有程式邏輯
-        self.log("開始執行...")
-        self.log(f"Excel 檔案：{self.excel_path.get()}")
-        self.log(f"工作表名稱：{self.sheet_name.get()}")
-        self.log(f"輸出資料夾：{self.output_dir.get()}")
-        self.log("目前為 UI 雛形版本，下一步可直接串接 excel_to_df() / df_to_dict() / df_to_xml_files()。")
-        messagebox.showinfo("完成", "UI 雛形已建立，開始按鈕可正常觸發。")
+        try:
+            self.start_button.config(state="disabled")
+            self.log("開始執行...")
+            self.log(f"Excel 檔案：{self.excel_path.get()}")
+            self.log(f"工作表名稱：{self.sheet_name.get()}")
+            self.log(f"輸出資料夾：{self.output_dir.get()}")
+
+            df = excel_to_df(self.excel_path.get(), self.sheet_name.get().strip() or None)
+            self.log(f"已讀取資料，共 {len(df)} 筆符合 MDD/MDR 篩選條件。")
+
+            devices = df_to_dict(df)
+            self.log(f"已完成資料轉換，共 {len(devices)} 筆裝置資料待輸出。")
+
+            df_to_xml_files(devices, self.output_dir.get())
+            self.log("XML 檔案輸出完成。")
+            messagebox.showinfo("完成", "XML 檔案已成功產生。")
+
+        except Exception as e:
+            self.log("執行失敗。")
+            self.log(str(e))
+            self.log(traceback.format_exc())
+            messagebox.showerror("錯誤", f"執行失敗：{e}")
+        finally:
+            self.start_button.config(state="normal")
 
     def log(self, message):
         self.log_text.insert("end", message + "\n")

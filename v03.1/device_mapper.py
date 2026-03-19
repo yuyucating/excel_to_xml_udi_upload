@@ -55,13 +55,14 @@ def row_to_dict_MDR(row):
     c = build_common_fields(row)
     b_di_code = row["tc_jsb070"]
     b_entity = "GS1"
+    risk_lv = 'I'*c["riskClass"].count('I')
 
     return {
         "device:Device": {
             "@xsi:type": "device:MDRDeviceType",
             "device:MDRBasicUDI": {
                 "@xsi:type": "device:MDRBasicUDIType",
-                "basicudi:riskClass": c["riskClass"],
+                "basicudi:riskClass": 'CLASS_'+risk_lv,
                 "basicudi:model": c["model"],
                 "basicudi:identifier": {
                     "commondi:DICode": b_di_code,
@@ -113,7 +114,7 @@ def row_to_dict_MDR(row):
                 "udidi:clinicalSizes": {
                     "commondi:clinicalSize": {
                         "@xsi:type": "commondi:ValueClinicalSizeType",
-                        "commondi:clinicalSizeType": "CST19",
+                        "commondi:clinicalSizeType": "CST999" if c["spec"] is not None else None, # modified - 2026-03-19
                         "commondi:text": c["spec"]
                     }
                 }
@@ -135,8 +136,8 @@ def row_to_dict_MDD(row):
     certificate_expiry_mdd = row["tc_jsb710"].split(" ")[0] if pd.notna(row["tc_jsb710"]) else None
     mnb_actor_code = "2195"
     certificate_revision = safe_str(row["tc_jsb180"])
-    certificate_type = "MDD" # modified to use certificate type MDD - 2026-03-19
-    
+    risk_lv = 'I'*c["riskClass"].count('I')
+    certificate_type = "MDD_"+risk_lv # modified to use certificate type MDD - 2026-03-19
 
     return {
         "device:Device": {
@@ -146,10 +147,10 @@ def row_to_dict_MDD(row):
                     "commondi:DICode": c["i_DICode"],
                     "commondi:issuingEntityCode": c["i_Entity"]
                 },
-                "udidi:placedOnTheMarket": "true", # modified as GPT translated response XML. tag "udidi:marketPlacementDate" might be needed - 2026-03-19
                 "udidi:status": {
                     "commondi:code": c["udi_status"]
                 },
+                "udidi:placedOnTheMarket": "true", # modified as GPT translated response XML. tag "udidi:marketPlacementDate" might be needed - 2026-03-19
                 "udidi:basicUDIIdentifier": {
                     "commondi:DICode": basicudi, # modified to use basicudi - 2026-03-19
                     "commondi:issuingEntityCode": b_entity
@@ -188,13 +189,13 @@ def row_to_dict_MDD(row):
                 "udidi:clinicalSizes": {
                     "commondi:clinicalSize": {
                         "@xsi:type": "commondi:TextClinicalSizeType",
-                        "commondi:clinicalSizeType": "CST12",
+                        "commondi:clinicalSizeType": "CST999" if c["spec"] is not None else None, # modified - 2026-03-19
                         "commondi:text": c["spec"]
                     }
                 }
             },
             "device:MDEUDI": {
-                "basicudi:riskClass": c["riskClass"],
+                "basicudi:riskClass": 'CLASS_'+risk_lv,
                 "basicudi:model": c["model"],
                 "basicudi:identifier": {
                     "commondi:DICode": b_di_code,

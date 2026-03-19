@@ -136,7 +136,7 @@ def row_to_dict_MDD(row):
     certificate_expiry_mdd = row["tc_jsb710"].split(" ")[0] if pd.notna(row["tc_jsb710"]) else None
     mnb_actor_code = "2195"
     certificate_revision = safe_str(row["tc_jsb180"])
-    risk_lv = 'I'*(c["riskClass"].count('I')+c["riskClass"].count('Ｉ')) # modified to count both 'I' and 'Ｉ' - 2026-03-19
+    risk_lv = 'I'*(c["riskClass"].count('I')+c["riskClass"].count('Ⅰ')) # modified to count both 'I' and 'Ⅰ' - 2026-03-19
     certificate_type = "MDD_"+risk_lv # modified to use certificate type MDD - 2026-03-19
 
     return {

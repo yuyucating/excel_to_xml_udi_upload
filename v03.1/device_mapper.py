@@ -125,7 +125,7 @@ def row_to_dict_MDR(row):
 
 def row_to_dict_MDD(row):
     c = build_common_fields(row)
-    b_di_code = row["tc_jsb630"]
+    b_di_code = row["tc_jsb070"] # modified to use tc_jsb070 for basicudi DICode - 2026-03-19
     b_entity = "GS1"
     ARActorCode = "DE-AR-000006218" # modified for mdi Europa GmbH - 2026-03-19
     basicudi = safe_str(row["tc_jsb070"]) # modified to use basicudi - 2026-03-19
@@ -136,7 +136,7 @@ def row_to_dict_MDD(row):
     certificate_expiry_mdd = row["tc_jsb710"].split(" ")[0] if pd.notna(row["tc_jsb710"]) else None
     mnb_actor_code = "2195"
     certificate_revision = safe_str(row["tc_jsb180"])
-    risk_lv = 'I'*c["riskClass"].count('I')
+    risk_lv = 'I'*(c["riskClass"].count('I')+c["riskClass"].count('Ｉ')) # modified to count both 'I' and 'Ｉ' - 2026-03-19
     certificate_type = "MDD_"+risk_lv # modified to use certificate type MDD - 2026-03-19
 
     return {
@@ -150,11 +150,11 @@ def row_to_dict_MDD(row):
                 "udidi:status": {
                     "commondi:code": c["udi_status"]
                 },
-                "udidi:placedOnTheMarket": "true", # modified as GPT translated response XML. tag "udidi:marketPlacementDate" might be needed - 2026-03-19
                 "udidi:basicUDIIdentifier": {
                     "commondi:DICode": basicudi, # modified to use basicudi - 2026-03-19
                     "commondi:issuingEntityCode": b_entity
                 },
+                "udidi:placedOnTheMarket": "true", # modified as GPT translated response XML. tag "udidi:marketPlacementDate" might be needed - 2026-03-19
                 "udidi:MDNCodes": c["emdn_code"],
                 "udidi:referenceNumber": c["productNumber"],
                 "udidi:sterile": c["is_sterile"],
@@ -188,7 +188,7 @@ def row_to_dict_MDD(row):
                 "udidi:reprocessed": c["is_reprocessed"],
                 "udidi:clinicalSizes": {
                     "commondi:clinicalSize": {
-                        "@xsi:type": "commondi:TextClinicalSizeType",
+                        "@xsi:type": "commondi:TextClinicalSizeType" if c["spec"] is not None else None,
                         "commondi:clinicalSizeType": "CST999" if c["spec"] is not None else None, # modified - 2026-03-19
                         "commondi:text": c["spec"]
                     }

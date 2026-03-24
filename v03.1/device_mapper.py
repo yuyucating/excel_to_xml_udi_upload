@@ -11,7 +11,8 @@ def safe_str(value):
 
 def build_spec(row):
     if pd.notna(row["tc_jsb430"]) and pd.notna(row["tc_jsb440"]):
-        return f'{row["tc_jsb430"]} {row["tc_jsb440"]}'
+        spec = [row["tc_jsb430"], row["tc_jsb440"]] # tc_jsb430 is number, tc_jsb440 is unit
+        return spec
     return None
 
 
@@ -101,12 +102,16 @@ def row_to_dict_MDR(row):
                 "udidi:referenceNumber": c["productNumber"],
                 "udidi:sterile": c["is_sterile"],
                 "udidi:sterilization": c["is_sterilization"],
-                "udidi:tradeNames": {
-                    "lsn:name": {
-                        "lsn:language": c["tradeName_lang"],
-                        "lsn:textValue": c["tradeName"]
-                    }
-                },
+                **(
+                    {
+                        "udidi:tradeNames": {
+                            "lsn:name": {
+                                "lsn:language": c["tradeName_lang"],
+                                "lsn:textValue": c["tradeName"]
+                            }
+                        },
+                    } if c.get("tradeName") and c["tradeName"] != 'N' else {}
+                ),
                 "udidi:numberOfReuses": c["numberOfReuses"],
                 "udidi:baseQuantity": c["baseQuantity"],
                 "udidi:latex": c["is_latex"],
@@ -129,6 +134,7 @@ def row_to_dict_MDD(row):
     b_entity = "GS1"
     ARActorCode = "DE-AR-000006218" # modified for mdi Europa GmbH - 2026-03-19
     basicudi = safe_str(row["tc_jsb070"]) # modified to use basicudi - 2026-03-19
+    # basicudi = safe_str(row["tc_jsb630"]) # 0323
 
     critical_warnings = safe_str(row["tc_jsb730"])
     warning_value = "CW010" if critical_warnings == "Consult Instruction for Use" else None
@@ -144,27 +150,32 @@ def row_to_dict_MDD(row):
             "@xsi:type": "device:MDEUDeviceType",
             "device:MDEUData": {
                 "udidi:identifier": {
-                    "commondi:DICode": c["i_DICode"],
+                    "commondi:DICode": c["i_DICode"], # UDI-DI
                     "commondi:issuingEntityCode": c["i_Entity"]
                 },
                 "udidi:status": {
                     "commondi:code": c["udi_status"]
                 },
                 "udidi:basicUDIIdentifier": {
-                    "commondi:DICode": basicudi, # modified to use basicudi - 2026-03-19
+                    "commondi:DICode": basicudi, # modified to use Basic UDI - 2026-03-19
                     "commondi:issuingEntityCode": b_entity
                 },
-                "udidi:placedOnTheMarket": "true", # modified as GPT translated response XML. tag "udidi:marketPlacementDate" might be needed - 2026-03-19
+                
                 "udidi:MDNCodes": c["emdn_code"],
                 "udidi:referenceNumber": c["productNumber"],
+                #"udidi:placedOnTheMarket": "true", # modified as GPT translated response XML. tag "udidi:marketPlacementDate" might be needed - 2026-03-19
                 "udidi:sterile": c["is_sterile"],
                 "udidi:sterilization": c["is_sterilization"],
-                "udidi:tradeNames": {
-                    "lsn:name": {
-                        "lsn:language": c["tradeName_lang"],
-                        "lsn:textValue": c["tradeName"]
-                    }
-                },
+                **(
+                    {
+                        "udidi:tradeNames": {
+                            "lsn:name": {
+                                "lsn:language": c["tradeName_lang"],
+                                "lsn:textValue": c["tradeName"]
+                            }
+                        },
+                    } if c.get("tradeName") and c["tradeName"] != 'N' else {}
+                ),
                 "udidi:criticalWarnings": {
                     "commondi:warning": {
                         "commondi:comments": {
@@ -177,22 +188,33 @@ def row_to_dict_MDD(row):
                     }
                 },
                 "udidi:numberOfReuses": c["numberOfReuses"],
-                
                 "udidi:marketInfos": {
                     "marketinfo:marketInfo": {
                         "marketinfo:country": "ES",
-                        "marketinfo:originalPlacedOnTheMarket": "false"
+                        "marketinfo:originalPlacedOnTheMarket": "true"
                     }
                 },
                 "udidi:latex": c["is_latex"],
                 "udidi:reprocessed": c["is_reprocessed"],
-                "udidi:clinicalSizes": {
-                    "commondi:clinicalSize": {
-                        "@xsi:type": "commondi:TextClinicalSizeType" if c["spec"] is not None else None,
-                        "commondi:clinicalSizeType": "CST999" if c["spec"] is not None else None, # modified - 2026-03-19
-                        "commondi:text": c["spec"]
+                **( # dict unpack 寫法：只有當 c["spec"] 不為 None 時才會加入 clinicalSizes 的內容 - 2026-03-20
+                    {
+                        "udidi:clinicalSizes": {
+                            "commondi:clinicalSize": {
+                                "@xsi:type": "commondi:TextClinicalSizeType",
+                                "commondi:clinicalSizeType": "CST999",
+                                # "commondi:clinicalSizeDescription": c["spec"]
+                                "commondi:clinicalSizeDescription":{
+                                    "lsn:name": {
+                                        "lsn:language": "EN",
+                                        "lsn:textValue": c["spec"][1]
+                                    }
+                                },
+                                "commondi:text": c["spec"][0]
+                            }
+                        }
                     }
-                }
+                    if c.get("spec") and c["spec"].strip() else {}
+                )
             },
             "device:MDEUDI": {
                 "basicudi:riskClass": 'CLASS_'+risk_lv,
@@ -205,15 +227,20 @@ def row_to_dict_MDD(row):
                 "basicudi:ARActorCode": ARActorCode, # modified for mdi Europa GmbH - 2026-03-19
                 "basicudi:humanTissuesCells": c["is_humanTissuesCells"],
                 "basicudi:MFActorCode": c["MFActorCode"],
-                "basicudi:deviceCertificateLinks": {
-                    "links:deviceCertificateLink": {
-                        "links:certificateNumber": certificate_mdd,
-                        "links:expiryDate": certificate_expiry_mdd,
-                        "links:NBActorCode": mnb_actor_code,
-                        "links:certificateRevisionNumber": certificate_revision,
-                        "links:certificateType": certificate_type
+                **(
+                    {
+                        "basicudi:deviceCertificateLinks": {
+                            "links:deviceCertificateLink": {
+                                "links:certificateNumber": certificate_mdd,
+                                "links:expiryDate": certificate_expiry_mdd,
+                                "links:NBActorCode": mnb_actor_code,
+                                "links:certificateRevisionNumber": certificate_revision,
+                                "links:certificateType": certificate_type
+                            }
+                        }
                     }
-                },
+                    if certificate_type != "MDD_I" else {} 
+                ),
                 "basicudi:humanProductCheck": c["is_humanProduct"],
                 "basicudi:medicinalProductCheck": c["is_medicinalProduct"],
                 "basicudi:type": c["productType"],

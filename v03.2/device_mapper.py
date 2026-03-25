@@ -2,11 +2,21 @@ import pandas as pd
 
 
 def yn_to_bool_str(value):
-    return "true" if value == "Y" else "false"
+    if pd.isna(value):
+        return "false"
+    return "true" if str(value).strip().upper() == "Y" else "false"
 
 
 def safe_str(value):
     return value if pd.notna(value) else None
+
+def safe_int(value, default=0):
+    if pd.isna(value):
+        return default
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 
 def build_spec(row):
@@ -44,7 +54,7 @@ def build_common_fields(row):
         "is_sterilization": yn_to_bool_str(row["tc_jsb742"]),
         "tradeName": row["tc_jsb200"],
         "tradeName_lang": row["tc_jsb210"],
-        "numberOfReuses": row["tc_jsb744"] if isinstance(row["tc_jsb744"], int) else 0,
+        "numberOfReuses": safe_int(row["tc_jsb744"], 0),
         "baseQuantity": safe_str(row["tc_jsb230"]),
         "is_latex": yn_to_bool_str(row["tc_jsb550"]),
         "is_reprocessed": yn_to_bool_str(row["tc_jsb620"]),

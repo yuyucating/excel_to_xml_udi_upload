@@ -48,18 +48,21 @@ class UDIUploadUI:
                 saved = json.load(f)
             default_settings.update(saved)
         except Exception:
-            pass
+            messagebox.showwarning("設定檔異常", "設定檔讀取失敗，已載入預設值。")
+            return default_settings
 
         return default_settings
 
     def save_settings(self, settings_data):
-        with open(self.settings_file, "w", encoding="utf-8") as f:
-            json.dump(settings_data, f, ensure_ascii=False, indent=2)
-
-        self.settings = settings_data
-
-        if self.settings.get("default_sheet_name"):
-            self.sheet_name.set(self.settings["default_sheet_name"])
+        try:
+            with open(self.settings_file, "w", encoding="utf-8") as f:
+                json.dump(settings_data, f, ensure_ascii=False, indent=2)
+            self.settings = settings_data
+            if self.settings.get("default_sheet_name"):
+                self.sheet_name.set(self.settings["default_sheet_name"])
+        except Exception as e:
+            messagebox.showerror("錯誤", f"儲存設定失敗：\n{e}")
+            raise
 
     def _build_ui(self):
         container = ttk.Frame(self.root, padding=16)
@@ -219,8 +222,10 @@ class UDIUploadUI:
             self.start_button.config(state="normal")
 
     def log(self, message):
+        self.log_text.config(state="normal")
         self.log_text.insert("end", message + "\n")
         self.log_text.see("end")
+        self.log_text.config(state="disabled")
 
     def open_settings_window(self):
         window = tk.Toplevel(self.root)

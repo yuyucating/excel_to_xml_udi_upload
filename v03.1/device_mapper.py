@@ -142,7 +142,12 @@ def row_to_dict_MDD(row):
     certificate_expiry_mdd = row["tc_jsb710"].split(" ")[0] if pd.notna(row["tc_jsb710"]) else None
     mnb_actor_code = "2195"
     certificate_revision = safe_str(row["tc_jsb180"])
-    risk_lv = 'I'*(c["riskClass"].count('I')+c["riskClass"].count('Ⅰ')) # modified to count both 'I' and 'Ⅰ' - 2026-03-19
+    
+    if c["riskClass"] == "Ⅲ":
+        risk_lv = 'III' # modified to handle case where risk class is 'Ⅲ' - 2026-03-19
+    else:
+        risk_lv = 'I'*(c["riskClass"].count('I')+c["riskClass"].count('Ⅰ')) # modified to count both 'I' and 'Ⅰ' - 2026-03-19
+
     certificate_type = "MDD_"+risk_lv # modified to use certificate type MDD - 2026-03-19
 
     return {
@@ -156,14 +161,13 @@ def row_to_dict_MDD(row):
                 "udidi:status": {
                     "commondi:code": c["udi_status"]
                 },
-                "udidi:basicUDIIdentifier": {
-                    "commondi:DICode": basicudi, # modified to use Basic UDI - 2026-03-19
-                    "commondi:issuingEntityCode": b_entity
-                },
+                # "udidi:basicUDIIdentifier": { # removed Basic UDI for temporatory -- 2026-03-25
+                #     "commondi:DICode": basicudi, # modified to use Basic UDI - 2026-03-19
+                #     "commondi:issuingEntityCode": b_entity
+                # },
                 
                 "udidi:MDNCodes": c["emdn_code"],
                 "udidi:referenceNumber": c["productNumber"],
-                #"udidi:placedOnTheMarket": "true", # modified as GPT translated response XML. tag "udidi:marketPlacementDate" might be needed - 2026-03-19
                 "udidi:sterile": c["is_sterile"],
                 "udidi:sterilization": c["is_sterilization"],
                 **(
@@ -213,18 +217,18 @@ def row_to_dict_MDD(row):
                             }
                         }
                     }
-                    if c.get("spec") and c["spec"].strip() else {}
+                    if c.get("spec") and len(c["spec"]) >= 2 else {}
                 )
             },
             "device:MDEUDI": {
                 "basicudi:riskClass": 'CLASS_'+risk_lv,
                 "basicudi:model": c["model"],
-                "basicudi:identifier": {
-                    "commondi:DICode": b_di_code,
-                    "commondi:issuingEntityCode": b_entity
-                },
+                # "basicudi:identifier": { # removed Basic UDI for temporatory -- 2026-03-25
+                #     "commondi:DICode": b_di_code,
+                #     "commondi:issuingEntityCode": b_entity
+                # },
                 "basicudi:animalTissuesCells": c["is_animalTissuesCells"],
-                "basicudi:ARActorCode": ARActorCode, # modified for mdi Europa GmbH - 2026-03-19
+                "basicudi:ARActorCode": ARActorCode,
                 "basicudi:humanTissuesCells": c["is_humanTissuesCells"],
                 "basicudi:MFActorCode": c["MFActorCode"],
                 **(

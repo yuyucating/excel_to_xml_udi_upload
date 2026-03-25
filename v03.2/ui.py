@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 import sys
 import json
 import subprocess
@@ -27,17 +28,60 @@ class UDIUploadUI:
         self.excel_path = tk.StringVar()
         self.sheet_name = tk.StringVar(value=self.settings.get("default_sheet_name", "p_zta"))
         self.output_dir = tk.StringVar()
+        self.available_sheets = []
 
         self._build_ui()
-
-    
 
     def load_settings(self):
         default_settings = {
             "sender_actor_code": "",
             "sender_node_id": "",
             "service_access_token": "",
-            "default_sheet_name": "p_zta"
+            "default_sheet_name": "p_zta",
+            "field_mapping": {
+                "COMMON": {
+                    "reg_type": "tc_jsb030",
+                    "risk_class": "tc_jsb080",
+                    "model": "tc_jsb200",
+                    "animal_tissues_cells": "tc_jsb360",
+                    "human_tissues_cells": "tc_jsb350",
+                    "medicinal_product": "tc_jsb370",
+                    "human_product": "tc_jsb380",
+                    "active": "tc_jsb120",
+                    "administering": "tc_jsb130",
+                    "implantable": "tc_jsb090",
+                    "measuring": "tc_jsb100",
+                    "reusable": "tc_jsb110",
+                    "udi_di": "tc_jsb001",
+                    "udi_status": "tc_jsb270",
+                    "emdn_code": "tc_jsb190",
+                    "pi_lot_number": "tc_jsb2401",
+                    "pi_serial_number": "tc_jsb2411",
+                    "pi_manufacturing_date": "tc_jsb2421",
+                    "pi_expiration_date": "tc_jsb2431",
+                    "product_number": "tc_jsb000",
+                    "sterile": "tc_jsb743",
+                    "sterilization": "tc_jsb742",
+                    "trade_name": "tc_jsb200",
+                    "trade_name_lang": "tc_jsb210",
+                    "number_of_reuses": "tc_jsb744",
+                    "base_quantity": "tc_jsb230",
+                    "latex": "tc_jsb550",
+                    "reprocessed": "tc_jsb620",
+                    "spec_value": "tc_jsb430",
+                    "spec_unit": "tc_jsb440"
+                },
+                "MDD": {
+                    "basicudi_di": "tc_jsb070",
+                    "critical_warning": "tc_jsb730",
+                    "certificate_no": "tc_jsb170",
+                    "certificate_revision": "tc_jsb180",
+                    "certificate_expiry": "tc_jsb710"
+                },
+                "MDR": {
+                    "basicudi_di": "tc_jsb070"
+                }
+            }
         }
 
         if not os.path.exists(self.settings_file):
@@ -52,6 +96,33 @@ class UDIUploadUI:
             return default_settings
 
         return default_settings
+    
+    def load_sheet_names(self, excel_path):
+        try:
+            xls = pd.ExcelFile(excel_path)
+            self.available_sheets = xls.sheet_names
+            self.sheet_combo["values"] = self.available_sheets
+
+            if not self.available_sheets:
+                self.sheet_name.set("")
+                self.log("找不到任何工作表。")
+                return
+
+            default_sheet = self.settings.get("default_sheet_name", "").strip()
+
+            if default_sheet and default_sheet in self.available_sheets:
+                self.sheet_name.set(default_sheet)
+                self.log(f"已載入工作表，預設選擇：{default_sheet}")
+            else:
+                self.sheet_name.set(self.available_sheets[0])
+                self.log(f"已載入工作表，預設選擇第一張：{self.available_sheets[0]}")
+
+        except Exception as e:
+            self.available_sheets = []
+            self.sheet_combo["values"] = []
+            self.sheet_name.set("")
+            self.log(f"讀取工作表失敗：{e}")
+            messagebox.showerror("錯誤", f"無法讀取 Excel 工作表：\n{e}")
 
     def save_settings(self, settings_data):
         try:
@@ -78,12 +149,22 @@ class UDIUploadUI:
         )
         title.pack(side="left")
 
+        button_bar_top = ttk.Frame(title_bar)
+        button_bar_top.pack(side="right")
+
+        self.excel_fields_button = ttk.Button(
+            button_bar_top,
+            text="Excel 欄位設定",
+            command=self.open_excel_fields_window
+        )
+        self.excel_fields_button.pack(side="right")
+
         self.settings_button = ttk.Button(
-            title_bar,
+            button_bar_top,
             text="基本資料設定",
             command=self.open_settings_window
         )
-        self.settings_button.pack(side="right")
+        self.settings_button.pack(side="right", padx=(0, 8))
 
         form = ttk.LabelFrame(container, text="基本設定", padding=12)
         form.pack(fill="x")
@@ -93,7 +174,14 @@ class UDIUploadUI:
         ttk.Button(form, text="瀏覽", command=self.select_excel).grid(row=0, column=2, pady=6)
 
         ttk.Label(form, text="工作表名稱：").grid(row=1, column=0, sticky="w", pady=6)
-        ttk.Entry(form, textvariable=self.sheet_name, width=20).grid(row=1, column=1, sticky="w", padx=8)
+
+        self.sheet_combo = ttk.Combobox(
+            form,
+            textvariable=self.sheet_name,
+            width=30,
+            state="readonly"
+        )
+        self.sheet_combo.grid(row=1, column=1, sticky="w", padx=8)
 
         ttk.Label(form, text="輸出資料夾：").grid(row=2, column=0, sticky="w", pady=6)
         ttk.Entry(form, textvariable=self.output_dir, width=62).grid(row=2, column=1, sticky="ew", padx=8)
@@ -138,6 +226,8 @@ class UDIUploadUI:
             self.output_dir.set(default_output_dir)
             self.log(f"輸出資料夾已自動帶入：{default_output_dir}")
 
+            self.load_sheet_names(path)
+
     def select_output_dir(self):
         path = filedialog.askdirectory(title="選擇輸出資料夾")
         if path:
@@ -170,6 +260,14 @@ class UDIUploadUI:
     def start_process(self):
         if not self.excel_path.get().strip():
             messagebox.showwarning("缺少資料", "請先選擇 Excel 檔案。")
+            return
+        
+        # if not self.sheet_name.get().strip():
+        #     messagebox.showwarning("缺少資料", "請先選擇工作表。")
+        #     return
+
+        if self.available_sheets and self.sheet_name.get().strip() not in self.available_sheets:
+            messagebox.showwarning("工作表錯誤", "所選工作表不存在於目前 Excel 檔案中。")
             return
 
         if not self.output_dir.get().strip():
@@ -261,12 +359,13 @@ class UDIUploadUI:
         button_bar.grid(row=4, column=0, columnspan=2, pady=(20, 0))
 
         def save_and_close():
-            settings_data = {
+            settings_data = dict(self.settings)
+            settings_data.update({
                 "sender_actor_code": sender_actor_code.get().strip(),
                 "sender_node_id": sender_node_id.get().strip(),
                 "service_access_token": service_access_token.get().strip(),
                 "default_sheet_name": default_sheet_name.get().strip() or "p_zta"
-            }
+            })
 
             self.save_settings(settings_data)
             self.log("基本資料已儲存。")
@@ -276,6 +375,146 @@ class UDIUploadUI:
         ttk.Button(button_bar, text="儲存", command=save_and_close).pack(side="left", padx=6, ipadx=12)
         ttk.Button(button_bar, text="取消", command=window.destroy).pack(side="left", padx=6, ipadx=12)
 
+    def open_excel_fields_window(self):
+        window = tk.Toplevel(self.root)
+        window.title("Excel 欄位設定")
+        window.geometry("760x620")
+        window.minsize(720, 560)
+        window.transient(self.root)
+        window.grab_set()
+
+        frame = ttk.Frame(window, padding=16)
+        frame.pack(fill="both", expand=True)
+
+        ttk.Label(
+            frame,
+            text="請設定 Excel 欄位對應（tc_jsbXXX）",
+            font=("Microsoft JhengHei", 11, "bold")
+        ).pack(anchor="w", pady=(0, 4))
+
+        ttk.Label(
+            frame,
+            text="共用欄位會提供給 MDD / MDR 共同使用；專用欄位只會在對應法規使用。",
+        ).pack(anchor="w", pady=(0, 12))
+
+        notebook = ttk.Notebook(frame)
+        notebook.pack(fill="both", expand=True)
+
+        field_mapping = self.settings.get("field_mapping", {})
+        common_mapping = field_mapping.get("COMMON", {})
+        mdd_mapping = field_mapping.get("MDD", {})
+        mdr_mapping = field_mapping.get("MDR", {})
+
+        common_vars = {}
+        mdd_vars = {}
+        mdr_vars = {}
+
+        common_fields = [
+            ("reg_type", "法規類型"),
+            ("risk_class", "風險等級"),
+            ("model", "Model"),
+            ("animal_tissues_cells", "Animal Tissues / Cells"),
+            ("human_tissues_cells", "Human Tissues / Cells"),
+            ("medicinal_product", "Medicinal Product"),
+            ("human_product", "Human Product"),
+            ("active", "Active"),
+            ("administering", "Administering"),
+            ("implantable", "Implantable"),
+            ("measuring", "Measuring"),
+            ("reusable", "Reusable"),
+            ("udi_di", "UDI-DI"),
+            ("udi_status", "UDI Status"),
+            ("emdn_code", "EMDN Code"),
+            ("pi_lot_number", "PI - Lot Number"),
+            ("pi_serial_number", "PI - Serial Number"),
+            ("pi_manufacturing_date", "PI - Manufacturing Date"),
+            ("pi_expiration_date", "PI - Expiration Date"),
+            ("product_number", "Product Number"),
+            ("sterile", "Sterile"),
+            ("sterilization", "Sterilization"),
+            ("trade_name", "Trade Name"),
+            ("trade_name_lang", "Trade Name Language"),
+            ("number_of_reuses", "Number Of Reuses"),
+            ("base_quantity", "Base Quantity"),
+            ("latex", "Latex"),
+            ("reprocessed", "Reprocessed"),
+            ("spec_value", "Spec Value"),
+            ("spec_unit", "Spec Unit"),
+        ]
+
+        mdd_fields = [
+            ("basicudi_di", "Basic UDI-DI"),
+            ("critical_warning", "Critical Warning"),
+            ("certificate_no", "Certificate Number"),
+            ("certificate_revision", "Certificate Revision"),
+            ("certificate_expiry", "Certificate Expiry"),
+        ]
+
+        mdr_fields = [
+            ("basicudi_di", "Basic UDI-DI"),
+        ]
+
+        def build_scrollable_form(parent, fields, value_dict, var_dict):
+            outer = ttk.Frame(parent)
+            outer.pack(fill="both", expand=True)
+
+            canvas = tk.Canvas(outer, highlightthickness=0)
+            scrollbar = ttk.Scrollbar(outer, orient="vertical", command=canvas.yview)
+            scrollable_frame = ttk.Frame(canvas)
+
+            scrollable_frame.bind(
+                "<Configure>",
+                lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+            )
+
+            canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+            canvas.configure(yscrollcommand=scrollbar.set)
+
+            canvas.pack(side="left", fill="both", expand=True)
+            scrollbar.pack(side="right", fill="y")
+
+            for i, (key, label_text) in enumerate(fields):
+                ttk.Label(scrollable_frame, text=f"{label_text}：").grid(
+                    row=i, column=0, sticky="w", pady=6
+                )
+                var = tk.StringVar(value=value_dict.get(key, ""))
+                var_dict[key] = var
+                ttk.Entry(scrollable_frame, textvariable=var, width=40).grid(
+                    row=i, column=1, sticky="ew", padx=8, pady=6
+                )
+
+            scrollable_frame.columnconfigure(1, weight=1)
+
+        common_tab = ttk.Frame(notebook, padding=12)
+        notebook.add(common_tab, text="共用欄位")
+        build_scrollable_form(common_tab, common_fields, common_mapping, common_vars)
+
+        mdd_tab = ttk.Frame(notebook, padding=12)
+        notebook.add(mdd_tab, text="MDD")
+        build_scrollable_form(mdd_tab, mdd_fields, mdd_mapping, mdd_vars)
+
+        mdr_tab = ttk.Frame(notebook, padding=12)
+        notebook.add(mdr_tab, text="MDR")
+        build_scrollable_form(mdr_tab, mdr_fields, mdr_mapping, mdr_vars)
+
+        button_bar = ttk.Frame(frame)
+        button_bar.pack(fill="x", pady=(12, 0))
+
+        def save_field_mapping():
+            updated_settings = dict(self.settings)
+            updated_settings["field_mapping"] = {
+                "COMMON": {key: var.get().strip() for key, var in common_vars.items()},
+                "MDD": {key: var.get().strip() for key, var in mdd_vars.items()},
+                "MDR": {key: var.get().strip() for key, var in mdr_vars.items()},
+            }
+
+            self.save_settings(updated_settings)
+            self.log("Excel 欄位設定已儲存。")
+            messagebox.showinfo("完成", "Excel 欄位設定已儲存。", parent=window)
+            window.destroy()
+
+        ttk.Button(button_bar, text="儲存", command=save_field_mapping).pack(side="right", padx=6, ipadx=12)
+        ttk.Button(button_bar, text="取消", command=window.destroy).pack(side="right", padx=6, ipadx=12)
 
 if __name__ == "__main__":
     root = tk.Tk()

@@ -1,5 +1,73 @@
 import pandas as pd
 
+DEFAULT_FIELD_MAPPING = {
+    "COMMON": {
+        "reg_type": "tc_jsb030",
+        "risk_class": "tc_jsb080",
+        "model": "tc_jsb200",
+        "animal_tissues_cells": "tc_jsb360",
+        "human_tissues_cells": "tc_jsb350",
+        "medicinal_product": "tc_jsb370",
+        "human_product": "tc_jsb380",
+        "active": "tc_jsb120",
+        "administering": "tc_jsb130",
+        "implantable": "tc_jsb090",
+        "measuring": "tc_jsb100",
+        "reusable": "tc_jsb110",
+        "udi_di": "tc_jsb001",
+        "udi_status": "tc_jsb270",
+        "emdn_code": "tc_jsb190",
+        "pi_lot_number": "tc_jsb2401",
+        "pi_serial_number": "tc_jsb2411",
+        "pi_manufacturing_date": "tc_jsb2421",
+        "pi_expiration_date": "tc_jsb2431",
+        "product_number": "tc_jsb000",
+        "sterile": "tc_jsb743",
+        "sterilization": "tc_jsb742",
+        "trade_name": "tc_jsb200",
+        "trade_name_lang": "tc_jsb210",
+        "number_of_reuses": "tc_jsb744",
+        "base_quantity": "tc_jsb230",
+        "latex": "tc_jsb550",
+        "reprocessed": "tc_jsb620",
+        "spec_value": "tc_jsb430",
+        "spec_unit": "tc_jsb440"
+    },
+    "MDD": {
+        "basicudi_di": "tc_jsb070",
+        "critical_warning": "tc_jsb730",
+        "certificate_no": "tc_jsb170",
+        "certificate_revision": "tc_jsb180",
+        "certificate_expiry": "tc_jsb710"
+    },
+    "MDR": {
+        "basicudi_di": "tc_jsb070"
+    }
+}
+
+def merge_field_mapping(field_mapping=None):
+    merged = {
+        "COMMON": dict(DEFAULT_FIELD_MAPPING["COMMON"]),
+        "MDD": dict(DEFAULT_FIELD_MAPPING["MDD"]),
+        "MDR": dict(DEFAULT_FIELD_MAPPING["MDR"]),
+    }
+
+    if not field_mapping:
+        return merged
+
+    for section in ("COMMON", "MDD", "MDR"):
+        merged[section].update(field_mapping.get(section, {}))
+
+    return merged
+
+
+def get_mapped_value(row, mapping, section, key, default=None):
+    col_name = mapping.get(section, {}).get(key)
+    if not col_name:
+        return default
+    return row[col_name] if col_name in row.index else default
+
+# Below are the original helper functions and mapping logic, which can be refactored to use the above mapping system for better flexibility. For now, they remain unchanged.
 
 def yn_to_bool_str(value):
     if pd.isna(value):
@@ -19,52 +87,92 @@ def safe_int(value, default=0):
         return default
 
 
-def build_spec(row):
-    if pd.notna(row["tc_jsb430"]) and pd.notna(row["tc_jsb440"]):
-        spec = [row["tc_jsb430"], row["tc_jsb440"]] # tc_jsb430 is number, tc_jsb440 is unit
+def build_spec(row, mapping):
+    spec_value = get_mapped_value(row, mapping, "COMMON", "spec_value")
+    spec_unit = get_mapped_value(row, mapping, "COMMON", "spec_unit")
+
+    if pd.notna(spec_value) and pd.notna(spec_unit):
+        spec = [spec_value, spec_unit]
         return spec
     return None
 
 
-def build_common_fields(row):
+def build_common_fields(row, mapping):
+    # return {
+    #     "riskClass": row["tc_jsb080"].upper().replace(" ", "_"),
+    #     "model": row["tc_jsb200"],
+    #     "is_animalTissuesCells": yn_to_bool_str(row["tc_jsb360"]),
+    #     "is_humanTissuesCells": yn_to_bool_str(row["tc_jsb350"]),
+    #     "MFActorCode": "TW-MF-000017454",
+    #     "is_medicinalProduct": yn_to_bool_str(row["tc_jsb370"]),
+    #     "is_humanProduct": yn_to_bool_str(row["tc_jsb380"]),
+    #     "productType": "DEVICE",
+    #     "is_active": yn_to_bool_str(row["tc_jsb120"]),
+    #     "is_administering": yn_to_bool_str(row["tc_jsb130"]),
+    #     "is_implantable": yn_to_bool_str(row["tc_jsb090"]),
+    #     "is_measuring": yn_to_bool_str(row["tc_jsb100"]),
+    #     "is_reusable": yn_to_bool_str(row["tc_jsb110"]),
+    #     "i_DICode": safe_str(row["tc_jsb001"]),
+    #     "i_Entity": "GS1",
+    #     "udi_status": row["tc_jsb270"].upper().replace("EU ", "").replace(" ", "_") if pd.notna(row["tc_jsb270"]) else None,
+    #     "emdn_code": safe_str(row["tc_jsb190"]),
+    #     "is_pi_lotNumber": yn_to_bool_str(row["tc_jsb2401"]),
+    #     "is_pi_serialNumber": yn_to_bool_str(row["tc_jsb2411"]),
+    #     "is_pi_manufacturingDate": yn_to_bool_str(row["tc_jsb2421"]),
+    #     "is_pi_expirationDate": yn_to_bool_str(row["tc_jsb2431"]),
+    #     "productNumber": row["tc_jsb000"],
+    #     "is_sterile": yn_to_bool_str(row["tc_jsb743"]),
+    #     "is_sterilization": yn_to_bool_str(row["tc_jsb742"]),
+    #     "tradeName": row["tc_jsb200"],
+    #     "tradeName_lang": row["tc_jsb210"],
+    #     "numberOfReuses": safe_int(row["tc_jsb744"], 0),
+    #     "baseQuantity": safe_str(row["tc_jsb230"]),
+    #     "is_latex": yn_to_bool_str(row["tc_jsb550"]),
+    #     "is_reprocessed": yn_to_bool_str(row["tc_jsb620"]),
+    #     "spec": build_spec(row),
+    # }
+
+    risk_class = get_mapped_value(row, mapping, "COMMON", "risk_class")
+    udi_status = get_mapped_value(row, mapping, "COMMON", "udi_status")
+
     return {
-        "riskClass": row["tc_jsb080"].upper().replace(" ", "_"),
-        "model": row["tc_jsb200"],
-        "is_animalTissuesCells": yn_to_bool_str(row["tc_jsb360"]),
-        "is_humanTissuesCells": yn_to_bool_str(row["tc_jsb350"]),
+        "riskClass": str(risk_class).upper().replace(" ", "_") if pd.notna(risk_class) else None,
+        "model": get_mapped_value(row, mapping, "COMMON", "model"),
+        "is_animalTissuesCells": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "animal_tissues_cells")),
+        "is_humanTissuesCells": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "human_tissues_cells")),
         "MFActorCode": "TW-MF-000017454",
-        "is_medicinalProduct": yn_to_bool_str(row["tc_jsb370"]),
-        "is_humanProduct": yn_to_bool_str(row["tc_jsb380"]),
+        "is_medicinalProduct": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "medicinal_product")),
+        "is_humanProduct": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "human_product")),
         "productType": "DEVICE",
-        "is_active": yn_to_bool_str(row["tc_jsb120"]),
-        "is_administering": yn_to_bool_str(row["tc_jsb130"]),
-        "is_implantable": yn_to_bool_str(row["tc_jsb090"]),
-        "is_measuring": yn_to_bool_str(row["tc_jsb100"]),
-        "is_reusable": yn_to_bool_str(row["tc_jsb110"]),
-        "i_DICode": safe_str(row["tc_jsb001"]),
+        "is_active": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "active")),
+        "is_administering": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "administering")),
+        "is_implantable": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "implantable")),
+        "is_measuring": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "measuring")),
+        "is_reusable": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "reusable")),
+        "i_DICode": safe_str(get_mapped_value(row, mapping, "COMMON", "udi_di")),
         "i_Entity": "GS1",
-        "udi_status": row["tc_jsb270"].upper().replace("EU ", "").replace(" ", "_") if pd.notna(row["tc_jsb270"]) else None,
-        "emdn_code": safe_str(row["tc_jsb190"]),
-        "is_pi_lotNumber": yn_to_bool_str(row["tc_jsb2401"]),
-        "is_pi_serialNumber": yn_to_bool_str(row["tc_jsb2411"]),
-        "is_pi_manufacturingDate": yn_to_bool_str(row["tc_jsb2421"]),
-        "is_pi_expirationDate": yn_to_bool_str(row["tc_jsb2431"]),
-        "productNumber": row["tc_jsb000"],
-        "is_sterile": yn_to_bool_str(row["tc_jsb743"]),
-        "is_sterilization": yn_to_bool_str(row["tc_jsb742"]),
-        "tradeName": row["tc_jsb200"],
-        "tradeName_lang": row["tc_jsb210"],
-        "numberOfReuses": safe_int(row["tc_jsb744"], 0),
-        "baseQuantity": safe_str(row["tc_jsb230"]),
-        "is_latex": yn_to_bool_str(row["tc_jsb550"]),
-        "is_reprocessed": yn_to_bool_str(row["tc_jsb620"]),
-        "spec": build_spec(row),
+        "udi_status": str(udi_status).upper().replace("EU ", "").replace(" ", "_") if pd.notna(udi_status) else None,
+        "emdn_code": safe_str(get_mapped_value(row, mapping, "COMMON", "emdn_code")),
+        "is_pi_lotNumber": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "pi_lot_number")),
+        "is_pi_serialNumber": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "pi_serial_number")),
+        "is_pi_manufacturingDate": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "pi_manufacturing_date")),
+        "is_pi_expirationDate": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "pi_expiration_date")),
+        "productNumber": get_mapped_value(row, mapping, "COMMON", "product_number"),
+        "is_sterile": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "sterile")),
+        "is_sterilization": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "sterilization")),
+        "tradeName": get_mapped_value(row, mapping, "COMMON", "trade_name"),
+        "tradeName_lang": get_mapped_value(row, mapping, "COMMON", "trade_name_lang"),
+        "numberOfReuses": safe_int(get_mapped_value(row, mapping, "COMMON", "number_of_reuses"), 0),
+        "baseQuantity": safe_str(get_mapped_value(row, mapping, "COMMON", "base_quantity")),
+        "is_latex": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "latex")),
+        "is_reprocessed": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "reprocessed")),
+        "spec": build_spec(row, mapping),
     }
 
 
-def row_to_dict_MDR(row):
-    c = build_common_fields(row)
-    b_di_code = row["tc_jsb070"]
+def row_to_dict_MDR(row, mapping):
+    c = build_common_fields(row, mapping)
+    b_di_code = get_mapped_value(row, mapping, "MDR", "basicudi_di")
     b_entity = "GS1"
     risk_lv = 'I'*c["riskClass"].count('I')
 
@@ -138,20 +246,22 @@ def row_to_dict_MDR(row):
     }
 
 
-def row_to_dict_MDD(row):
-    c = build_common_fields(row)
-    b_di_code = row["tc_jsb070"] # modified to use tc_jsb070 for basicudi DICode - 2026-03-19
+def row_to_dict_MDD(row, mapping):
+    c = build_common_fields(row, mapping)
+    b_di_code = get_mapped_value(row, mapping, "MDD", "basicudi_di") # modified to use tc_jsb070 for basicudi DICode - 2026-03-19
     b_entity = "GS1"
     ARActorCode = "DE-AR-000006218" # modified for mdi Europa GmbH - 2026-03-19
-    basicudi = safe_str(row["tc_jsb070"]) # modified to use basicudi - 2026-03-19
-    # basicudi = safe_str(row["tc_jsb630"]) # 0323
+    basicudi = safe_str(get_mapped_value(row, mapping, "MDD", "basicudi_di"))
 
-    critical_warnings = safe_str(row["tc_jsb730"])
+    critical_warnings = safe_str(get_mapped_value(row, mapping, "MDD", "critical_warning"))
     warning_value = "CW010" if critical_warnings == "Consult Instruction for Use" else None
-    certificate_mdd = safe_str(row["tc_jsb170"])
-    certificate_expiry_mdd = row["tc_jsb710"].split(" ")[0] if pd.notna(row["tc_jsb710"]) else None
+    certificate_mdd = safe_str(get_mapped_value(row, mapping, "MDD", "certificate_no"))
+    
+    certificate_expiry_raw = get_mapped_value(row, mapping, "MDD", "certificate_expiry")
+    certificate_expiry_mdd = str(certificate_expiry_raw).split(" ")[0] if pd.notna(certificate_expiry_raw) else None
+    
     mnb_actor_code = "2195"
-    certificate_revision = safe_str(row["tc_jsb180"])
+    certificate_revision = safe_str(get_mapped_value(row, mapping, "MDD", "certificate_revision"))
     
     if c["riskClass"] == "Ⅲ":
         risk_lv = 'III' # modified to handle case where risk class is 'Ⅲ' - 2026-03-19
@@ -269,16 +379,17 @@ def row_to_dict_MDD(row):
     }
 
 
-def df_to_dict(df):
+def df_to_dict(df, field_mapping=None):
     device_dict_list = []
+    mapping = merge_field_mapping(field_mapping)
 
     for _, row in df.iterrows():
-        reg_type = row["tc_jsb030"]
+        reg_type = get_mapped_value(row, mapping, "COMMON", "reg_type")
 
         if reg_type == "MDD":
-            device_data = row_to_dict_MDD(row)
+            device_data = row_to_dict_MDD(row, mapping)
         elif reg_type == "MDR":
-            device_data = row_to_dict_MDR(row)
+            device_data = row_to_dict_MDR(row, mapping)
         else:
             continue
 

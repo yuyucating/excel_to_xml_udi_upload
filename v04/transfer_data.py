@@ -9,15 +9,46 @@ from xml_builder import wrap_with_push, dict_to_xml_string, save_xml
 REQUIRED_COLUMNS = [
     "tc_jsb030", "tc_jsb080", "tc_jsb150"
 ]
+DEFAULT_REQUIRED_FIELD_KEYS = [
+    ("COMMON", "reg_type"),
+    ("COMMON", "risk_class"),
+]
+DEFAULT_FIELD_MAPPING = {
+    "COMMON": {
+        "reg_type": "tc_jsb030",
+        "risk_class": "tc_jsb080",
+    },
+    "MDD": {},
+    "MDR": {},
+}
+
+def merge_required_mapping(field_mapping=None):
+    merged = {
+        "COMMON": dict(DEFAULT_FIELD_MAPPING["COMMON"]),
+        "MDD": {},
+        "MDR": {},
+    }
+    if field_mapping:
+        for section in ("COMMON", "MDD", "MDR"):
+            merged[section].update(field_mapping.get(section, {}))
+    return merged
 
 
-def validate_required_columns(df):
-    missing = [col for col in REQUIRED_COLUMNS if col not in df.columns]
+def validate_required_columns(df, field_mapping=None):
+    mapping = merge_required_mapping(field_mapping)
+
+    required_columns = []
+    for section, key in DEFAULT_REQUIRED_FIELD_KEYS:
+        col = mapping.get(section, {}).get(key)
+        if col:
+            required_columns.append(col)
+
+    missing = [col for col in required_columns if col not in df.columns]
     if missing:
         raise ValueError(f"Excel 缺少必要欄位: {', '.join(missing)}")
 
 
-def excel_to_df(file_path, sheet_name=None):
+def excel_to_df(file_path, sheet_name=None, field_mapping=None):
     if sheet_name is None:
         sheet_name = "p_zta"
 
@@ -27,9 +58,13 @@ def excel_to_df(file_path, sheet_name=None):
         dtype={"tc_jsb001": str, "tc_jsb710": str}
     )
 
-    validate_required_columns(df)
+    validate_required_columns(df, field_mapping)
 
-    df_eu = df.dropna(subset=["tc_jsb030", "tc_jsb080", "tc_jsb150"])
+    reg_col = field_mapping.get("COMMON", {}).get("reg_type", "tc_jsb030") if field_mapping else "tc_jsb030"
+    risk_col = field_mapping.get("COMMON", {}).get("risk_class", "tc_jsb080") if field_mapping else "tc_jsb080"
+
+    subset_cols = [c for c in [reg_col, risk_col] if c in df.columns]
+    df_eu = df.dropna(subset=subset_cols)
     return df_eu
 
 
@@ -69,9 +104,9 @@ def df_to_xml_files(devices, output_dir, config):
     return output_path
 
 
-def export_excel_to_xml(file_path, output_dir, sheet_name=None, config=None):
-    df = excel_to_df(file_path, sheet_name)
-    devices = df_to_dict(df)
+def export_excel_to_xml(file_path, output_dir, sheet_name=None, config=None, field_mapping=None):
+    df = excel_to_df(file_path, sheet_name, field_mapping=field_mapping)
+    devices = df_to_dict(df, field_mapping=field_mapping)
     output_path = df_to_xml_files(devices, output_dir, config)
 
     return {

@@ -33,64 +33,82 @@ class UDIUploadUI:
         self._build_ui()
 
     def load_settings(self):
+        default_field_mapping = {
+            "COMMON": {
+                "reg_type": "tc_jsb030",
+                "risk_class": "tc_jsb080",
+                "model": "tc_jsb200",
+                "animal_tissues_cells": "tc_jsb360",
+                "human_tissues_cells": "tc_jsb350",
+                "medicinal_product": "tc_jsb370",
+                "human_product": "tc_jsb380",
+                "active": "tc_jsb120",
+                "administering": "tc_jsb130",
+                "implantable": "tc_jsb090",
+                "measuring": "tc_jsb100",
+                "reusable": "tc_jsb110",
+                "udi_di": "tc_jsb001",
+                "udi_status": "tc_jsb270",
+                "emdn_code": "tc_jsb190",
+                "pi_lot_number": "tc_jsb2401",
+                "pi_serial_number": "tc_jsb2411",
+                "pi_manufacturing_date": "tc_jsb2421",
+                "pi_expiration_date": "tc_jsb2431",
+                "product_number": "tc_jsb000",
+                "sterile": "tc_jsb743",
+                "sterilization": "tc_jsb742",
+                "trade_name": "tc_jsb200",
+                "trade_name_lang": "tc_jsb210",
+                "number_of_reuses": "tc_jsb744",
+                "base_quantity": "tc_jsb230",
+                "latex": "tc_jsb550",
+                "reprocessed": "tc_jsb620",
+                "spec_value": "tc_jsb430",
+                "spec_unit": "tc_jsb440"
+            },
+            "MDD": {
+                "basicudi_di": "tc_jsb070",
+                "critical_warning": "tc_jsb730",
+                "certificate_no": "tc_jsb170",
+                "certificate_revision": "tc_jsb180",
+                "certificate_expiry": "tc_jsb710"
+            },
+            "MDR": {
+                "basicudi_di": "tc_jsb070"
+            }
+        }
+
         default_settings = {
             "sender_actor_code": "",
             "sender_node_id": "",
             "service_access_token": "",
             "default_sheet_name": "p_zta",
-            "field_mapping": {
-                "COMMON": {
-                    "reg_type": "tc_jsb030",
-                    "risk_class": "tc_jsb080",
-                    "model": "tc_jsb200",
-                    "animal_tissues_cells": "tc_jsb360",
-                    "human_tissues_cells": "tc_jsb350",
-                    "medicinal_product": "tc_jsb370",
-                    "human_product": "tc_jsb380",
-                    "active": "tc_jsb120",
-                    "administering": "tc_jsb130",
-                    "implantable": "tc_jsb090",
-                    "measuring": "tc_jsb100",
-                    "reusable": "tc_jsb110",
-                    "udi_di": "tc_jsb001",
-                    "udi_status": "tc_jsb270",
-                    "emdn_code": "tc_jsb190",
-                    "pi_lot_number": "tc_jsb2401",
-                    "pi_serial_number": "tc_jsb2411",
-                    "pi_manufacturing_date": "tc_jsb2421",
-                    "pi_expiration_date": "tc_jsb2431",
-                    "product_number": "tc_jsb000",
-                    "sterile": "tc_jsb743",
-                    "sterilization": "tc_jsb742",
-                    "trade_name": "tc_jsb200",
-                    "trade_name_lang": "tc_jsb210",
-                    "number_of_reuses": "tc_jsb744",
-                    "base_quantity": "tc_jsb230",
-                    "latex": "tc_jsb550",
-                    "reprocessed": "tc_jsb620",
-                    "spec_value": "tc_jsb430",
-                    "spec_unit": "tc_jsb440"
-                },
-                "MDD": {
-                    "basicudi_di": "tc_jsb070",
-                    "critical_warning": "tc_jsb730",
-                    "certificate_no": "tc_jsb170",
-                    "certificate_revision": "tc_jsb180",
-                    "certificate_expiry": "tc_jsb710"
-                },
-                "MDR": {
-                    "basicudi_di": "tc_jsb070"
-                }
-            }
+            "field_mapping_defaults": json.loads(json.dumps(default_field_mapping)),
+            "field_mapping": json.loads(json.dumps(default_field_mapping))
         }
-
         if not os.path.exists(self.settings_file):
             return default_settings
 
         try:
             with open(self.settings_file, "r", encoding="utf-8") as f:
                 saved = json.load(f)
+
             default_settings.update(saved)
+
+            # if not default_settings.get("field_mapping_defaults"):
+            #     default_settings["field_mapping_defaults"] = json.loads(json.dumps(default_field_mapping))
+
+            # if not default_settings.get("field_mapping"):
+            #     default_settings["field_mapping"] = json.loads(json.dumps(default_field_mapping))
+
+            for section in ("COMMON", "MDD", "MDR"):
+                default_settings["field_mapping_defaults"][section].update(
+                    saved.get("field_mapping_defaults", {}).get(section, {})
+                )
+                default_settings["field_mapping"][section].update(
+                    saved.get("field_mapping", {}).get(section, {})
+                )
+
         except Exception:
             messagebox.showwarning("設定檔異常", "設定檔讀取失敗，已載入預設值。")
             return default_settings
@@ -129,7 +147,7 @@ class UDIUploadUI:
             with open(self.settings_file, "w", encoding="utf-8") as f:
                 json.dump(settings_data, f, ensure_ascii=False, indent=2)
             self.settings = settings_data
-            if self.settings.get("default_sheet_name"):
+            if "default_sheet_name" in settings_data and self.settings.get("default_sheet_name"):
                 self.sheet_name.set(self.settings["default_sheet_name"])
         except Exception as e:
             messagebox.showerror("錯誤", f"儲存設定失敗：\n{e}")
@@ -303,7 +321,8 @@ class UDIUploadUI:
                 self.excel_path.get(),
                 self.output_dir.get(),
                 self.sheet_name.get().strip() or None,
-                config=config
+                config=config,
+                field_mapping=self.settings.get("field_mapping", {})
             )
 
             self.log(f'已讀取資料，共 {result["df_count"]} 筆符合條件。')
@@ -401,9 +420,15 @@ class UDIUploadUI:
         notebook.pack(fill="both", expand=True)
 
         field_mapping = self.settings.get("field_mapping", {})
+        field_mapping_defaults = self.settings.get("field_mapping_defaults", {})
+
         common_mapping = field_mapping.get("COMMON", {})
         mdd_mapping = field_mapping.get("MDD", {})
         mdr_mapping = field_mapping.get("MDR", {})
+
+        common_defaults = field_mapping_defaults.get("COMMON", {})
+        mdd_defaults = field_mapping_defaults.get("MDD", {})
+        mdr_defaults = field_mapping_defaults.get("MDR", {})
 
         common_vars = {}
         mdd_vars = {}
@@ -454,7 +479,7 @@ class UDIUploadUI:
             ("basicudi_di", "Basic UDI-DI"),
         ]
 
-        def build_scrollable_form(parent, fields, value_dict, var_dict):
+        def build_scrollable_form(parent, fields, value_dict, default_dict, var_dict):
             outer = ttk.Frame(parent)
             outer.pack(fill="both", expand=True)
 
@@ -483,19 +508,40 @@ class UDIUploadUI:
                     row=i, column=1, sticky="ew", padx=8, pady=6
                 )
 
+                ttk.Button(
+                    scrollable_frame,
+                    text="預設",
+                    command=lambda v=var, k=key: v.set(default_dict.get(k, ""))
+                ).grid(row=i, column=2, sticky="w", padx=(4, 0), pady=6)
+
             scrollable_frame.columnconfigure(1, weight=1)
+            def _on_mousewheel(event):
+                canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+            def _bind_mousewheel(_event):
+                canvas.bind_all("<MouseWheel>", _on_mousewheel)
+
+            def _unbind_mousewheel(_event):
+                canvas.unbind_all("<MouseWheel>")
+
+            canvas.bind("<Enter>", _bind_mousewheel)
+            canvas.bind("<Leave>", _unbind_mousewheel)
+            scrollable_frame.bind("<Enter>", _bind_mousewheel)
+            scrollable_frame.bind("<Leave>", _unbind_mousewheel)
+
+
 
         common_tab = ttk.Frame(notebook, padding=12)
         notebook.add(common_tab, text="共用欄位")
-        build_scrollable_form(common_tab, common_fields, common_mapping, common_vars)
+        build_scrollable_form(common_tab, common_fields, common_mapping, common_defaults, common_vars)
 
         mdd_tab = ttk.Frame(notebook, padding=12)
         notebook.add(mdd_tab, text="MDD")
-        build_scrollable_form(mdd_tab, mdd_fields, mdd_mapping, mdd_vars)
+        build_scrollable_form(mdd_tab, mdd_fields, mdd_mapping, mdd_defaults, mdd_vars)
 
         mdr_tab = ttk.Frame(notebook, padding=12)
         notebook.add(mdr_tab, text="MDR")
-        build_scrollable_form(mdr_tab, mdr_fields, mdr_mapping, mdr_vars)
+        build_scrollable_form(mdr_tab, mdr_fields, mdr_mapping, mdr_defaults, mdr_vars)
 
         button_bar = ttk.Frame(frame)
         button_bar.pack(fill="x", pady=(12, 0))

@@ -171,10 +171,10 @@ def row_to_dict_MDD(row):
                 "udidi:status": {
                     "commondi:code": c["udi_status"]
                 },
-                # "udidi:basicUDIIdentifier": { # removed Basic UDI for temporatory -- 2026-03-25
-                #     "commondi:DICode": basicudi, # modified to use Basic UDI - 2026-03-19
-                #     "commondi:issuingEntityCode": b_entity
-                # },
+                "udidi:basicUDIIdentifier": {
+                    "commondi:DICode": basicudi, # modified to use Basic UDI - 2026-03-19
+                    "commondi:issuingEntityCode": b_entity
+                },
                 
                 "udidi:MDNCodes": c["emdn_code"],
                 "udidi:referenceNumber": c["productNumber"],

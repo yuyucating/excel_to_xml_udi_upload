@@ -98,42 +98,20 @@ def build_spec(row, mapping):
 
 
 def build_common_fields(row, mapping):
-    # return {
-    #     "riskClass": row["tc_jsb080"].upper().replace(" ", "_"),
-    #     "model": row["tc_jsb200"],
-    #     "is_animalTissuesCells": yn_to_bool_str(row["tc_jsb360"]),
-    #     "is_humanTissuesCells": yn_to_bool_str(row["tc_jsb350"]),
-    #     "MFActorCode": "TW-MF-000017454",
-    #     "is_medicinalProduct": yn_to_bool_str(row["tc_jsb370"]),
-    #     "is_humanProduct": yn_to_bool_str(row["tc_jsb380"]),
-    #     "productType": "DEVICE",
-    #     "is_active": yn_to_bool_str(row["tc_jsb120"]),
-    #     "is_administering": yn_to_bool_str(row["tc_jsb130"]),
-    #     "is_implantable": yn_to_bool_str(row["tc_jsb090"]),
-    #     "is_measuring": yn_to_bool_str(row["tc_jsb100"]),
-    #     "is_reusable": yn_to_bool_str(row["tc_jsb110"]),
-    #     "i_DICode": safe_str(row["tc_jsb001"]),
-    #     "i_Entity": "GS1",
-    #     "udi_status": row["tc_jsb270"].upper().replace("EU ", "").replace(" ", "_") if pd.notna(row["tc_jsb270"]) else None,
-    #     "emdn_code": safe_str(row["tc_jsb190"]),
-    #     "is_pi_lotNumber": yn_to_bool_str(row["tc_jsb2401"]),
-    #     "is_pi_serialNumber": yn_to_bool_str(row["tc_jsb2411"]),
-    #     "is_pi_manufacturingDate": yn_to_bool_str(row["tc_jsb2421"]),
-    #     "is_pi_expirationDate": yn_to_bool_str(row["tc_jsb2431"]),
-    #     "productNumber": row["tc_jsb000"],
-    #     "is_sterile": yn_to_bool_str(row["tc_jsb743"]),
-    #     "is_sterilization": yn_to_bool_str(row["tc_jsb742"]),
-    #     "tradeName": row["tc_jsb200"],
-    #     "tradeName_lang": row["tc_jsb210"],
-    #     "numberOfReuses": safe_int(row["tc_jsb744"], 0),
-    #     "baseQuantity": safe_str(row["tc_jsb230"]),
-    #     "is_latex": yn_to_bool_str(row["tc_jsb550"]),
-    #     "is_reprocessed": yn_to_bool_str(row["tc_jsb620"]),
-    #     "spec": build_spec(row),
-    # }
 
     risk_class = get_mapped_value(row, mapping, "COMMON", "risk_class")
     udi_status = get_mapped_value(row, mapping, "COMMON", "udi_status")
+
+    if yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "pi_lot_number")) == "true":
+        productionIdentifier = "LOT_NUMBER"
+    elif yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "pi_serial_number")) == "true":
+        productionIdentifier = "SERIALISATION_NUMBER"
+    elif yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "pi_expiration_date")) == "true":
+        productionIdentifier = "EXPIRATION_DATE"
+    elif yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "pi_manufacturing_date")) == "true":
+        productionIdentifier = "MANUFACTURING_DATE"
+    else:
+        productionIdentifier = None
 
     return {
         "riskClass": str(risk_class).upper().replace(" ", "_") if pd.notna(risk_class) else None,
@@ -153,17 +131,18 @@ def build_common_fields(row, mapping):
         "i_Entity": "GS1",
         "udi_status": str(udi_status).upper().replace("EU ", "").replace(" ", "_") if pd.notna(udi_status) else None,
         "emdn_code": safe_str(get_mapped_value(row, mapping, "COMMON", "emdn_code")),
-        "is_pi_lotNumber": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "pi_lot_number")),
-        "is_pi_serialNumber": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "pi_serial_number")),
-        "is_pi_manufacturingDate": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "pi_manufacturing_date")),
-        "is_pi_expirationDate": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "pi_expiration_date")),
+        "is_pi_lotNumber": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "pi_lot_number")), # can be removed if pi_code can work
+        "is_pi_serialNumber": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "pi_serial_number")), # can be removed if pi_code can work
+        "is_pi_manufacturingDate": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "pi_manufacturing_date")), # can be removed if pi_code can work
+        "is_pi_expirationDate": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "pi_expiration_date")), # can be removed if pi_code can work
+        "pi_code": productionIdentifier, # 2026-03-27
         "productNumber": get_mapped_value(row, mapping, "COMMON", "product_number"),
         "is_sterile": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "sterile")),
         "is_sterilization": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "sterilization")),
         "tradeName": get_mapped_value(row, mapping, "COMMON", "trade_name"),
         "tradeName_lang": get_mapped_value(row, mapping, "COMMON", "trade_name_lang"),
         "numberOfReuses": safe_int(get_mapped_value(row, mapping, "COMMON", "number_of_reuses"), 0),
-        "baseQuantity": safe_str(get_mapped_value(row, mapping, "COMMON", "base_quantity")),
+        "baseQuantity": safe_int(get_mapped_value(row, mapping, "COMMON", "base_quantity"), 0),
         "is_latex": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "latex")),
         "is_reprocessed": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "reprocessed")),
         "spec": build_spec(row, mapping),
@@ -205,18 +184,21 @@ def row_to_dict_MDR(row, mapping):
                     "commondi:DICode": c["i_DICode"],
                     "commondi:issuingEntityCode": c["i_Entity"]
                 },
-                "udidi:status": c["udi_status"],
+                "udidi:status": {
+                    "commondi:code": c["udi_status"]
+                },
                 "udidi:basicUDIIdentifier": {
                     "commondi:DICode": b_di_code,
                     "commondi:issuingEntityCode": b_entity
                 },
                 "udidi:MDNCodes": c["emdn_code"],
-                "udidi:productionIdentifier": {
-                    "udidi:lotNumber": c["is_pi_lotNumber"],
-                    "udidi:serialNumber": c["is_pi_serialNumber"],
-                    "udidi:manufacturingDate": c["is_pi_manufacturingDate"],
-                    "udidi:expirationDate": c["is_pi_expirationDate"]
-                },
+                # "udidi:productionIdentifier": {
+                #     "udidi:lotNumber": c["is_pi_lotNumber"],
+                #     "udidi:serialNumber": c["is_pi_serialNumber"],
+                #     "udidi:manufacturingDate": c["is_pi_manufacturingDate"],
+                #     "udidi:expirationDate": c["is_pi_expirationDate"]
+                # },
+                "udidi:productionIdentifier": c["pi_code"], # 2026-03-27 modified to use pi_code for production identifier
                 "udidi:referenceNumber": c["productNumber"],
                 "udidi:sterile": c["is_sterile"],
                 "udidi:sterilization": c["is_sterilization"],
@@ -226,30 +208,35 @@ def row_to_dict_MDR(row, mapping):
                             "lsn:name": {
                                 "lsn:language": c["tradeName_lang"],
                                 "lsn:textValue": c["tradeName"]
-                            }
-                        },
+                        }},
                     } if c.get("tradeName") and c["tradeName"] != 'N' else {}
                 ),
                 "udidi:numberOfReuses": c["numberOfReuses"],
                 "udidi:baseQuantity": c["baseQuantity"],
                 "udidi:latex": c["is_latex"],
                 "udidi:reprocessed": c["is_reprocessed"],
-                "udidi:clinicalSizes": {
-                    "commondi:clinicalSize": {
-                        "@xsi:type": "commondi:ValueClinicalSizeType",
-                        "commondi:clinicalSizeType": "CST999" if c["spec"] is not None else None, # modified - 2026-03-19
-                        "commondi:text": c["spec"]
-                    }
-                }
-            }
-        }
-    }
+                **( # dict unpack 寫法：只有當 c["spec"] 不為 None 時才會加入 clinicalSizes 的內容 - 2026-03-20
+                    {
+                        "udidi:clinicalSizes": {
+                            "commondi:clinicalSize": {
+                                "@xsi:type": "commondi:TextClinicalSizeType",
+                                "commondi:clinicalSizeType": "CST999",
+                                "commondi:clinicalSizeDescription":{
+                                    "lsn:name": {
+                                        "lsn:language": "EN",
+                                        "lsn:textValue": c["spec"][1]
+                                }},
+                                "commondi:text": c["spec"][0]
+                    }}}
+                    if c.get("spec") and len(c["spec"]) >= 2 else {}
+                )
+    }}}
 
 
 def row_to_dict_MDD(row, mapping):
     c = build_common_fields(row, mapping)
     b_di_code = get_mapped_value(row, mapping, "MDD", "basicudi_di") # modified to use tc_jsb070 for basicudi DICode - 2026-03-19
-    b_entity = "GS1"
+    b_entity = "EUDAMED" # modified to use EUDAMED as issuing entity for MDD - 2026-03-26
     ARActorCode = "DE-AR-000006218" # modified for mdi Europa GmbH - 2026-03-19
     basicudi = safe_str(get_mapped_value(row, mapping, "MDD", "basicudi_di"))
 
@@ -326,7 +313,6 @@ def row_to_dict_MDD(row, mapping):
                             "commondi:clinicalSize": {
                                 "@xsi:type": "commondi:TextClinicalSizeType",
                                 "commondi:clinicalSizeType": "CST999",
-                                # "commondi:clinicalSizeDescription": c["spec"]
                                 "commondi:clinicalSizeDescription":{
                                     "lsn:name": {
                                         "lsn:language": "EN",
@@ -343,10 +329,10 @@ def row_to_dict_MDD(row, mapping):
             "device:MDEUDI": {
                 "basicudi:riskClass": 'CLASS_'+risk_lv,
                 "basicudi:model": c["model"],
-                # "basicudi:identifier": { # removed Basic UDI for temporatory -- 2026-03-25
-                #     "commondi:DICode": b_di_code,
-                #     "commondi:issuingEntityCode": b_entity
-                # },
+                "basicudi:identifier": {
+                    "commondi:DICode": b_di_code,
+                    "commondi:issuingEntityCode": b_entity
+                },
                 "basicudi:animalTissuesCells": c["is_animalTissuesCells"],
                 "basicudi:ARActorCode": ARActorCode,
                 "basicudi:humanTissuesCells": c["is_humanTissuesCells"],

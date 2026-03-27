@@ -67,7 +67,7 @@ class UDIUploadUI:
                 "spec_unit": "tc_jsb440"
             },
             "MDD": {
-                "basicudi_di": "tc_jsb070",
+                "basicudi_di": "tc_jsb630", # 2026-03-26// The original default was tc_jsb070, but it has been changed to tc_jsb630
                 "critical_warning": "tc_jsb730",
                 "certificate_no": "tc_jsb170",
                 "certificate_revision": "tc_jsb180",

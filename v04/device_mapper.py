@@ -103,7 +103,7 @@ def build_common_fields(row, mapping):
     udi_status = get_mapped_value(row, mapping, "COMMON", "udi_status")
 
     if yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "pi_lot_number")) == "true":
-        productionIdentifier = "LOT_NUMBER"
+        productionIdentifier = "BATCH_NUMBER"
     elif yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "pi_serial_number")) == "true":
         productionIdentifier = "SERIALISATION_NUMBER"
     elif yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "pi_expiration_date")) == "true":

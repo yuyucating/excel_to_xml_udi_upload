@@ -5,6 +5,7 @@ DEFAULT_FIELD_MAPPING = {
         "reg_type": "tc_jsb030",
         "risk_class": "tc_jsb080",
         "model": "tc_jsb200",
+        "certificate_no": "tc_jsb170",
         "animal_tissues_cells": "tc_jsb360",
         "human_tissues_cells": "tc_jsb350",
         "medicinal_product": "tc_jsb370",
@@ -36,7 +37,6 @@ DEFAULT_FIELD_MAPPING = {
     "MDD": {
         "basicudi_di": "tc_jsb070",
         "critical_warning": "tc_jsb730",
-        "certificate_no": "tc_jsb170",
         "certificate_revision": "tc_jsb180",
         "certificate_expiry": "tc_jsb710"
     },
@@ -116,6 +116,7 @@ def build_common_fields(row, mapping):
     return {
         "riskClass": str(risk_class).upper().replace(" ", "_") if pd.notna(risk_class) else None,
         "model": get_mapped_value(row, mapping, "COMMON", "model"),
+        "certificate_no": safe_str(get_mapped_value(row, mapping, "COMMON", "certificate_no")),
         "is_animalTissuesCells": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "animal_tissues_cells")),
         "is_humanTissuesCells": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "human_tissues_cells")),
         "MFActorCode": "TW-MF-000017454",
@@ -242,7 +243,6 @@ def row_to_dict_MDD(row, mapping):
 
     critical_warnings = safe_str(get_mapped_value(row, mapping, "MDD", "critical_warning"))
     warning_value = "CW010" if critical_warnings == "Consult Instruction for Use" else None
-    certificate_mdd = safe_str(get_mapped_value(row, mapping, "MDD", "certificate_no"))
     
     certificate_expiry_raw = get_mapped_value(row, mapping, "MDD", "certificate_expiry")
     certificate_expiry_mdd = str(certificate_expiry_raw).split(" ")[0] if pd.notna(certificate_expiry_raw) else None
@@ -341,7 +341,7 @@ def row_to_dict_MDD(row, mapping):
                     {
                         "basicudi:deviceCertificateLinks": {
                             "links:deviceCertificateLink": {
-                                "links:certificateNumber": certificate_mdd,
+                                "links:certificateNumber": c["certificate_no"],
                                 "links:expiryDate": certificate_expiry_mdd,
                                 "links:NBActorCode": mnb_actor_code,
                                 "links:certificateRevisionNumber": certificate_revision,

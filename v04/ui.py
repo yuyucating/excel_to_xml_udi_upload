@@ -38,6 +38,7 @@ class UDIUploadUI:
                 "reg_type": "tc_jsb030",
                 "risk_class": "tc_jsb080",
                 "model": "tc_jsb200",
+                "certificate_no": "tc_jsb170",
                 "animal_tissues_cells": "tc_jsb360",
                 "human_tissues_cells": "tc_jsb350",
                 "medicinal_product": "tc_jsb370",
@@ -69,7 +70,6 @@ class UDIUploadUI:
             "MDD": {
                 "basicudi_di": "tc_jsb630", # 2026-03-26// The original default was tc_jsb070, but it has been changed to tc_jsb630
                 "critical_warning": "tc_jsb730",
-                "certificate_no": "tc_jsb170",
                 "certificate_revision": "tc_jsb180",
                 "certificate_expiry": "tc_jsb710"
             },
@@ -95,11 +95,6 @@ class UDIUploadUI:
 
             default_settings.update(saved)
 
-            # if not default_settings.get("field_mapping_defaults"):
-            #     default_settings["field_mapping_defaults"] = json.loads(json.dumps(default_field_mapping))
-
-            # if not default_settings.get("field_mapping"):
-            #     default_settings["field_mapping"] = json.loads(json.dumps(default_field_mapping))
 
             for section in ("COMMON", "MDD", "MDR"):
                 default_settings["field_mapping_defaults"][section].update(
@@ -438,6 +433,7 @@ class UDIUploadUI:
             ("reg_type", "法規類型"),
             ("risk_class", "風險等級"),
             ("model", "Model"),
+            ("certificate_no", "Certificate Number"),
             ("animal_tissues_cells", "Animal Tissues / Cells"),
             ("human_tissues_cells", "Human Tissues / Cells"),
             ("medicinal_product", "Medicinal Product"),
@@ -470,7 +466,6 @@ class UDIUploadUI:
         mdd_fields = [
             ("basicudi_di", "Basic UDI-DI"),
             ("critical_warning", "Critical Warning"),
-            ("certificate_no", "Certificate Number"),
             ("certificate_revision", "Certificate Revision"),
             ("certificate_expiry", "Certificate Expiry"),
         ]

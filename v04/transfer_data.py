@@ -118,7 +118,7 @@ def export_excel_to_xml(file_path, output_dir, sheet_name=None, config=None, fie
 
 if __name__ == "__main__":
     result = export_excel_to_xml(
-        r"I:\研發中心\法規課\private\A0_個人資料夾\Una Kuo\31. UDI Upload\cimi290 匯出範例_test0312.xlsx",
+        r"I:\研發中心\法規課\private\A0_個人資料夾\Una Kuo\31. UDI Upload\cimi290 匯出範例_test0324.xlsx",
         r"I:\研發中心\法規課\private\A0_個人資料夾\Una Kuo\31. UDI Upload\output_xml",
         "p_zta"
     )

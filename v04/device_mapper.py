@@ -1,4 +1,5 @@
 import pandas as pd
+from test_marketing_status import text_to_marketing_status_list
 
 DEFAULT_FIELD_MAPPING = {
     "COMMON": {
@@ -32,7 +33,8 @@ DEFAULT_FIELD_MAPPING = {
         "latex": "tc_jsb550",
         "reprocessed": "tc_jsb620",
         "spec_value": "tc_jsb430",
-        "spec_unit": "tc_jsb440"
+        "spec_unit": "tc_jsb440",
+        "marketing_status": "tc_jsb400",
     },
     "MDD": {
         "basicudi_di": "tc_jsb070",
@@ -113,6 +115,10 @@ def build_common_fields(row, mapping):
     else:
         productionIdentifier = None
 
+    marketing_status_description = get_mapped_value(row, mapping, "COMMON", "marketing_status")
+    # print("☆☆☆☆☆☆\n"+str(marketing_status_description)+"\n☆☆☆☆☆☆")
+    marketing_status_list = text_to_marketing_status_list(marketing_status_description) if marketing_status_description else []
+
     return {
         "riskClass": str(risk_class).upper().replace(" ", "_") if pd.notna(risk_class) else None,
         "model": get_mapped_value(row, mapping, "COMMON", "model"),
@@ -147,14 +153,32 @@ def build_common_fields(row, mapping):
         "is_latex": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "latex")),
         "is_reprocessed": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "reprocessed")),
         "spec": build_spec(row, mapping),
+        "marketing_status_list": marketing_status_list
     }
 
 
 def row_to_dict_MDR(row, mapping):
+    print("進到 row_to_dict_MDR()")
     c = build_common_fields(row, mapping)
+    # for item in c.get("marketing_status_list", []):
+    #     print("★", item)
+    # print("c keys =", c.keys())
+    # print("has marketing_status_list =", "marketing_status_list" in c)
+    print("marketing_status_list =", c.get("marketing_status_list"))
+
     b_di_code = get_mapped_value(row, mapping, "MDR", "basicudi_di")
     b_entity = "GS1"
-    risk_lv = 'I'*c["riskClass"].count('I')
+    ARActorCode = "DE-AR-000006218" # modified for mdi Europa GmbH - 2026-03-19
+    mnb_actor_code = "2696"
+
+    if c["riskClass"] == "Ⅲ":
+        risk_lv = 'III'
+    else:
+        risk_lv = 'I'*(c["riskClass"].count('I')+c["riskClass"].count('Ⅰ'))
+
+    # certificate_type = "MDR_QUALITY_MANAGEMENT_SYSTEM"
+    certificate_type = "TYPE_EXAMINATION"
+
 
     return {
         "device:Device": {
@@ -168,8 +192,23 @@ def row_to_dict_MDR(row, mapping):
                     "commondi:issuingEntityCode": b_entity
                 },
                 "basicudi:animalTissuesCells": c["is_animalTissuesCells"],
+                "basicudi:ARActorCode": ARActorCode,
                 "basicudi:humanTissuesCells": c["is_humanTissuesCells"],
                 "basicudi:MFActorCode": c["MFActorCode"],
+                **(
+                    {
+                        "basicudi:deviceCertificateLinks": {
+                            "links:deviceCertificateLink": {
+                                "links:certificateNumber": c["certificate_no"],
+                                "links:NBActorCode": mnb_actor_code,
+                                "links:certificateType": certificate_type
+                            }
+                        }
+                    }
+                    if certificate_type != "MDR_I" else {} 
+                ),
+
+
                 "basicudi:humanProductCheck": c["is_humanProduct"],
                 "basicudi:medicinalProductCheck": c["is_medicinalProduct"],
                 "basicudi:type": c["productType"],
@@ -214,6 +253,21 @@ def row_to_dict_MDR(row, mapping):
                 ),
                 "udidi:numberOfReuses": c["numberOfReuses"],
                 "udidi:baseQuantity": c["baseQuantity"],
+                **(
+                    {
+                        "udidi:marketInfos": {
+                            "marketinfo:marketInfo": [
+                                {
+                                    "marketinfo:country": item["country"],
+                                    "marketinfo:originalPlacedOnTheMarket": "true",
+                                    # "marketinfo:startDate": item["datestart"]
+                                }
+                                for item in c.get("marketing_status_list", [])
+                            ]
+                        }
+                    }
+                    if c.get("marketing_status_list") else {"test":"test"}
+                ),
                 "udidi:latex": c["is_latex"],
                 "udidi:reprocessed": c["is_reprocessed"],
                 **( # dict unpack 寫法：只有當 c["spec"] 不為 None 時才會加入 clinicalSizes 的內容 - 2026-03-20

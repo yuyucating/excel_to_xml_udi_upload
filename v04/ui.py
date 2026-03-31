@@ -65,7 +65,8 @@ class UDIUploadUI:
                 "latex": "tc_jsb550",
                 "reprocessed": "tc_jsb620",
                 "spec_value": "tc_jsb430",
-                "spec_unit": "tc_jsb440"
+                "spec_unit": "tc_jsb440",
+                "marketing_status": "tc_jsb400",
             },
             "MDD": {
                 "basicudi_di": "tc_jsb630", # 2026-03-26// The original default was tc_jsb070, but it has been changed to tc_jsb630
@@ -461,6 +462,7 @@ class UDIUploadUI:
             ("reprocessed", "Reprocessed"),
             ("spec_value", "Spec Value"),
             ("spec_unit", "Spec Unit"),
+            ("marketing_status", "Marketing Status Decription"),
         ]
 
         mdd_fields = [

@@ -70,7 +70,7 @@ def wrap_with_push(
     service_access_token: str = "YOUR_SECURITY_TOKEN",
     sender_actor_code: str = "YOUR_SRN_OR_ACTOR_ID",
     sender_node_id: str = "YOUR_PARTY_ID",
-    xsd_version: str = "3.0.25",
+    xsd_version: str = "3.0.28",
 ) -> dict:
     now = datetime.now(timezone(timedelta(hours=8))).isoformat(timespec="seconds")
 

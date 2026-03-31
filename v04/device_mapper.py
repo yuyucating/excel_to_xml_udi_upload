@@ -177,7 +177,7 @@ def row_to_dict_MDR(row, mapping):
         risk_lv = 'I'*(c["riskClass"].count('I')+c["riskClass"].count('Ⅰ'))
 
     # certificate_type = "MDR_QUALITY_MANAGEMENT_SYSTEM"
-    certificate_type = "TYPE_EXAMINATION"
+    certificate_type = "MDR_TYPE_EXAMINATION"
 
 
     return {

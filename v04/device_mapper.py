@@ -253,21 +253,7 @@ def row_to_dict_MDR(row, mapping):
                 ),
                 "udidi:numberOfReuses": c["numberOfReuses"],
                 "udidi:baseQuantity": c["baseQuantity"],
-                **(
-                    {
-                        "udidi:marketInfos": {
-                            "marketinfo:marketInfo": [
-                                {
-                                    "marketinfo:country": item["country"],
-                                    "marketinfo:originalPlacedOnTheMarket": "true",
-                                    # "marketinfo:startDate": item["datestart"]
-                                }
-                                for item in c.get("marketing_status_list", [])
-                            ]
-                        }
-                    }
-                    if c.get("marketing_status_list") else {"test":"test"}
-                ),
+
                 "udidi:latex": c["is_latex"],
                 "udidi:reprocessed": c["is_reprocessed"],
                 **( # dict unpack 寫法：只有當 c["spec"] 不為 None 時才會加入 clinicalSizes 的內容 - 2026-03-20
@@ -284,7 +270,22 @@ def row_to_dict_MDR(row, mapping):
                                 "commondi:text": c["spec"][0]
                     }}}
                     if c.get("spec") and len(c["spec"]) >= 2 else {}
-                )
+                ),
+                **(
+                    {
+                        "udidi:marketInfos": {
+                            "marketinfo:marketInfo": [
+                                {
+                                    "marketinfo:country": item["country"],
+                                    "marketinfo:originalPlacedOnTheMarket": "true",
+                                    # "marketinfo:startDate": item["datestart"]
+                                }
+                                for item in c.get("marketing_status_list", [])
+                            ]
+                        }
+                    }
+                    if c.get("marketing_status_list") else {}
+                ),
     }}}
 
 

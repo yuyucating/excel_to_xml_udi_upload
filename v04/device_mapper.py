@@ -125,7 +125,6 @@ def build_common_fields(row, mapping):
         "certificate_no": safe_str(get_mapped_value(row, mapping, "COMMON", "certificate_no")),
         "is_animalTissuesCells": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "animal_tissues_cells")),
         "is_humanTissuesCells": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "human_tissues_cells")),
-        "MFActorCode": "TW-MF-000017454",
         "is_medicinalProduct": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "medicinal_product")),
         "is_humanProduct": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "human_product")),
         "productType": "DEVICE",
@@ -157,18 +156,15 @@ def build_common_fields(row, mapping):
     }
 
 
-def row_to_dict_MDR(row, mapping):
+def row_to_dict_MDR(row, mapping, ActorCodes):
     print("進到 row_to_dict_MDR()")
     c = build_common_fields(row, mapping)
-    # for item in c.get("marketing_status_list", []):
-    #     print("★", item)
-    # print("c keys =", c.keys())
-    # print("has marketing_status_list =", "marketing_status_list" in c)
     print("marketing_status_list =", c.get("marketing_status_list"))
 
     b_di_code = get_mapped_value(row, mapping, "MDR", "basicudi_di")
     b_entity = "GS1"
-    ARActorCode = "DE-AR-000006218" # modified for mdi Europa GmbH - 2026-03-19
+    MFActorCode = ActorCodes.get("MFActorCode") # modified for mdi Europa GmbH - 2026-03-19
+    ARActorCode = ActorCodes.get("ARActorCode") # modified for mdi Europa GmbH - 2026-03-19
     mnb_actor_code = "2696"
 
     if c["riskClass"] == "Ⅲ":
@@ -194,7 +190,7 @@ def row_to_dict_MDR(row, mapping):
                 "basicudi:animalTissuesCells": c["is_animalTissuesCells"],
                 "basicudi:ARActorCode": ARActorCode,
                 "basicudi:humanTissuesCells": c["is_humanTissuesCells"],
-                "basicudi:MFActorCode": c["MFActorCode"],
+                "basicudi:MFActorCode": MFActorCode,
                 **(
                     {
                         "basicudi:deviceCertificateLinks": {
@@ -256,21 +252,6 @@ def row_to_dict_MDR(row, mapping):
 
                 "udidi:latex": c["is_latex"],
                 "udidi:reprocessed": c["is_reprocessed"],
-                **( # dict unpack 寫法：只有當 c["spec"] 不為 None 時才會加入 clinicalSizes 的內容 - 2026-03-20
-                    {
-                        "udidi:clinicalSizes": {
-                            "commondi:clinicalSize": {
-                                "@xsi:type": "commondi:TextClinicalSizeType",
-                                "commondi:clinicalSizeType": "CST999",
-                                "commondi:clinicalSizeDescription":{
-                                    "lsn:name": {
-                                        "lsn:language": "EN",
-                                        "lsn:textValue": c["spec"][1]
-                                }},
-                                "commondi:text": c["spec"][0]
-                    }}}
-                    if c.get("spec") and len(c["spec"]) >= 2 else {}
-                ),
                 **(
                     {
                         "udidi:marketInfos": {
@@ -286,14 +267,30 @@ def row_to_dict_MDR(row, mapping):
                     }
                     if c.get("marketing_status_list") else {}
                 ),
+                **( # dict unpack 寫法：只有當 c["spec"] 不為 None 時才會加入 clinicalSizes 的內容 - 2026-03-20
+                    {
+                        "udidi:clinicalSizes": {
+                            "commondi:clinicalSize": {
+                                "@xsi:type": "commondi:TextClinicalSizeType",
+                                "commondi:clinicalSizeType": "CST999",
+                                "commondi:clinicalSizeDescription":{
+                                    "lsn:name": {
+                                        "lsn:language": "EN",
+                                        "lsn:textValue": c["spec"][1]
+                                }},
+                                "commondi:text": c["spec"][0]
+                    }}}
+                    if c.get("spec") and len(c["spec"]) >= 2 else {}
+                ),   
     }}}
 
 
-def row_to_dict_MDD(row, mapping):
+def row_to_dict_MDD(row, mapping, ActorCodes):
     c = build_common_fields(row, mapping)
     b_di_code = get_mapped_value(row, mapping, "MDD", "basicudi_di") # modified to use tc_jsb070 for basicudi DICode - 2026-03-19
     b_entity = "EUDAMED" # modified to use EUDAMED as issuing entity for MDD - 2026-03-26
-    ARActorCode = "DE-AR-000006218" # modified for mdi Europa GmbH - 2026-03-19
+    MFActorCode = ActorCodes.get("MFActorCode") # modified for mdi Europa GmbH - 2026-03-19
+    ARActorCode = ActorCodes.get("ARActorCode") # modified for mdi Europa GmbH - 2026-03-19
     basicudi = safe_str(get_mapped_value(row, mapping, "MDD", "basicudi_di"))
 
     critical_warnings = safe_str(get_mapped_value(row, mapping, "MDD", "critical_warning"))
@@ -354,12 +351,27 @@ def row_to_dict_MDD(row, mapping):
                     }
                 },
                 "udidi:numberOfReuses": c["numberOfReuses"],
-                "udidi:marketInfos": {
-                    "marketinfo:marketInfo": {
-                        "marketinfo:country": "ES",
-                        "marketinfo:originalPlacedOnTheMarket": "true"
+                **(
+                    {
+                        "udidi:marketInfos": {
+                            "marketinfo:marketInfo": [
+                                {
+                                    "marketinfo:country": item["country"],
+                                    "marketinfo:originalPlacedOnTheMarket": "true",
+                                    # "marketinfo:startDate": item["datestart"]
+                                }
+                                for item in c.get("marketing_status_list", [])
+                            ]
+                        }
                     }
-                },
+                    if c.get("marketing_status_list") else {}
+                ),
+                # "udidi:marketInfos": {
+                #     "marketinfo:marketInfo": {
+                #         "marketinfo:country": "ES",
+                #         "marketinfo:originalPlacedOnTheMarket": "true"
+                #     }
+                # },
                 "udidi:latex": c["is_latex"],
                 "udidi:reprocessed": c["is_reprocessed"],
                 **( # dict unpack 寫法：只有當 c["spec"] 不為 None 時才會加入 clinicalSizes 的內容 - 2026-03-20
@@ -391,7 +403,7 @@ def row_to_dict_MDD(row, mapping):
                 "basicudi:animalTissuesCells": c["is_animalTissuesCells"],
                 "basicudi:ARActorCode": ARActorCode,
                 "basicudi:humanTissuesCells": c["is_humanTissuesCells"],
-                "basicudi:MFActorCode": c["MFActorCode"],
+                "basicudi:MFActorCode": MFActorCode,
                 **(
                     {
                         "basicudi:deviceCertificateLinks": {
@@ -420,7 +432,7 @@ def row_to_dict_MDD(row, mapping):
     }
 
 
-def df_to_dict(df, field_mapping=None):
+def df_to_dict(df, ActorCodes, field_mapping=None): #TODO ActorCodes
     device_dict_list = []
     mapping = merge_field_mapping(field_mapping)
 
@@ -428,9 +440,9 @@ def df_to_dict(df, field_mapping=None):
         reg_type = get_mapped_value(row, mapping, "COMMON", "reg_type")
 
         if reg_type == "MDD":
-            device_data = row_to_dict_MDD(row, mapping)
+            device_data = row_to_dict_MDD(row, mapping, ActorCodes)
         elif reg_type == "MDR":
-            device_data = row_to_dict_MDR(row, mapping)
+            device_data = row_to_dict_MDR(row, mapping, ActorCodes)
         else:
             continue
 

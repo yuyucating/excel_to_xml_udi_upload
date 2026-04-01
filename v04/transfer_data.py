@@ -6,9 +6,9 @@ from device_mapper import df_to_dict
 from xml_builder import wrap_with_push, dict_to_xml_string, save_xml
 
 
-REQUIRED_COLUMNS = [
-    "tc_jsb030", "tc_jsb080", "tc_jsb150"
-]
+# REQUIRED_COLUMNS = [
+#     "tc_jsb030", "tc_jsb080", "tc_jsb150"
+# ]
 DEFAULT_REQUIRED_FIELD_KEYS = [
     ("COMMON", "reg_type"),
     ("COMMON", "risk_class"),
@@ -105,14 +105,17 @@ def df_to_xml_files(devices, output_dir, config):
 
 
 def export_excel_to_xml(file_path, output_dir, sheet_name=None, config=None, field_mapping=None):
+    ActorCodes = {k: v for k, v in config.items() if k.endswith("ActorCode")}
+
     df = excel_to_df(file_path, sheet_name, field_mapping=field_mapping)
-    devices = df_to_dict(df, field_mapping=field_mapping)
+    devices = df_to_dict(df, ActorCodes, field_mapping=field_mapping)
     output_path = df_to_xml_files(devices, output_dir, config)
 
     return {
         "df_count": len(df),
         "device_count": len(devices),
-        "output_path": output_path
+        "output_path": output_path,
+
     }
 
 

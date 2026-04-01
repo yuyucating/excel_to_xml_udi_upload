@@ -84,6 +84,8 @@ class UDIUploadUI:
             "sender_node_id": "",
             "service_access_token": "",
             "default_sheet_name": "p_zta",
+            "MFActorCode": "",
+            "ARActorCode": "",
             "field_mapping_defaults": json.loads(json.dumps(default_field_mapping)),
             "field_mapping": json.loads(json.dumps(default_field_mapping))
         }
@@ -275,10 +277,6 @@ class UDIUploadUI:
         if not self.excel_path.get().strip():
             messagebox.showwarning("缺少資料", "請先選擇 Excel 檔案。")
             return
-        
-        # if not self.sheet_name.get().strip():
-        #     messagebox.showwarning("缺少資料", "請先選擇工作表。")
-        #     return
 
         if self.available_sheets and self.sheet_name.get().strip() not in self.available_sheets:
             messagebox.showwarning("工作表錯誤", "所選工作表不存在於目前 Excel 檔案中。")
@@ -291,7 +289,9 @@ class UDIUploadUI:
         config = {
             "sender_actor_code": self.settings.get("sender_actor_code", "").strip(),
             "sender_node_id": self.settings.get("sender_node_id", "").strip(),
-            "service_access_token": self.settings.get("service_access_token", "").strip()
+            "service_access_token": self.settings.get("service_access_token", "").strip(),
+            "MFActorCode": self.settings.get("MFActorCode", "").strip(),
+            "ARActorCode": self.settings.get("ARActorCode", "").strip()
         }
 
         if not config["sender_actor_code"]:
@@ -304,6 +304,14 @@ class UDIUploadUI:
 
         if not config["service_access_token"]:
             messagebox.showwarning("缺少設定", "請先到「基本資料設定」填寫 Service Access Token。")
+            return
+        
+        if not config["MFActorCode"]:
+            messagebox.showwarning("缺少設定", "請先到「基本資料設定」填寫 MF Actor Code。")
+            return
+        
+        if not config["ARActorCode"]:
+            messagebox.showwarning("缺少設定", "請先到「基本資料設定」填寫 AR Actor Code。")
             return
 
         try:
@@ -355,6 +363,8 @@ class UDIUploadUI:
         sender_node_id = tk.StringVar(value=self.settings.get("sender_node_id", ""))
         service_access_token = tk.StringVar(value=self.settings.get("service_access_token", ""))
         default_sheet_name = tk.StringVar(value=self.settings.get("default_sheet_name", "p_zta"))
+        ARActorCode = tk.StringVar(value=self.settings.get("ARActorCode", ""))
+        MFActorCode = tk.StringVar(value=self.settings.get("MFActorCode", ""))
 
         ttk.Label(frame, text="Sender Actor Code：").grid(row=0, column=0, sticky="w", pady=8)
         ttk.Entry(frame, textvariable=sender_actor_code, width=34).grid(row=0, column=1, sticky="ew", padx=8)
@@ -365,13 +375,20 @@ class UDIUploadUI:
         ttk.Label(frame, text="Service Access Token：").grid(row=2, column=0, sticky="w", pady=8)
         ttk.Entry(frame, textvariable=service_access_token, width=34, show="*").grid(row=2, column=1, sticky="ew", padx=8)
 
-        ttk.Label(frame, text="預設工作表：").grid(row=3, column=0, sticky="w", pady=8)
-        ttk.Entry(frame, textvariable=default_sheet_name, width=34).grid(row=3, column=1, sticky="ew", padx=8)
+        ttk.Label(frame, text="MF Actor Code：").grid(row=3, column=0, sticky="w", pady=8)
+        ttk.Entry(frame, textvariable=MFActorCode, width=34).grid(row=3, column=1, sticky="ew", padx=8)
+
+
+        ttk.Label(frame, text="AR Actor Code：").grid(row=4, column=0, sticky="w", pady=8)
+        ttk.Entry(frame, textvariable=ARActorCode, width=34).grid(row=4, column=1, sticky="ew", padx=8)
+
+        ttk.Label(frame, text="預設工作表：").grid(row=5, column=0, sticky="w", pady=8)
+        ttk.Entry(frame, textvariable=default_sheet_name, width=34).grid(row=5, column=1, sticky="ew", padx=8)
 
         frame.columnconfigure(1, weight=1)
 
         button_bar = ttk.Frame(frame)
-        button_bar.grid(row=4, column=0, columnspan=2, pady=(20, 0))
+        button_bar.grid(row=6, column=0, columnspan=2, pady=(20, 0))
 
         def save_and_close():
             settings_data = dict(self.settings)
@@ -379,6 +396,8 @@ class UDIUploadUI:
                 "sender_actor_code": sender_actor_code.get().strip(),
                 "sender_node_id": sender_node_id.get().strip(),
                 "service_access_token": service_access_token.get().strip(),
+                "MFActorCode": MFActorCode.get().strip(),
+                "ARActorCode": ARActorCode.get().strip(),
                 "default_sheet_name": default_sheet_name.get().strip() or "p_zta"
             })
 

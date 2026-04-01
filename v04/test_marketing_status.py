@@ -8,10 +8,14 @@ def text_to_marketing_status_list(marketing_status_description):
     result = []
     for status in marketing_status_list:
         if "," not in status:
+            country = toISOcountry(status.strip())
+            datestart = None
+            dateend = None
             continue
-        country = toISOcountry(status.split(",")[0].strip())
-        date_range = status.split(",")[1].replace("From ", "").replace(" To ", "/")
-        datestart, dateend = date_range.split("/")
+        else:
+            country = toISOcountry(status.split(",")[0].strip())
+            date_range = status.split(",")[1].replace("From ", "").replace(" To ", "/") if status.split(",")[1] else None
+            datestart, dateend = date_range.split("/") if date_range else None
         result.append({"country": country, "datestart": datestart, "dateend": dateend})
     
     print(result)

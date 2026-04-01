@@ -247,11 +247,12 @@ def row_to_dict_MDR(row, mapping, ActorCodes):
                         }},
                     } if c.get("tradeName") and c["tradeName"] != 'N' else {}
                 ),
+                # NO MARKETINFOS
                 "udidi:numberOfReuses": c["numberOfReuses"],
-                "udidi:baseQuantity": c["baseQuantity"],
 
+                "udidi:baseQuantity": c["baseQuantity"],
+                # NO MARKETINFOS
                 "udidi:latex": c["is_latex"],
-                "udidi:reprocessed": c["is_reprocessed"],
                 **(
                     {
                         "udidi:marketInfos": {
@@ -267,6 +268,8 @@ def row_to_dict_MDR(row, mapping, ActorCodes):
                     }
                     if c.get("marketing_status_list") else {}
                 ),
+                "udidi:reprocessed": c["is_reprocessed"],
+                # NO MARKETINFOS
                 **( # dict unpack 寫法：只有當 c["spec"] 不為 None 時才會加入 clinicalSizes 的內容 - 2026-03-20
                     {
                         "udidi:clinicalSizes": {

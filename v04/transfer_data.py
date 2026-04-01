@@ -94,7 +94,7 @@ def df_to_xml_files(devices, output_dir, config):
         service_access_token=config["service_access_token"],
         sender_actor_code=config["sender_actor_code"],
         sender_node_id=config["sender_node_id"],
-        xsd_version="3.0.25",
+        xsd_version="3.0.28",
     )
 
     xml_str = dict_to_xml_string(push_dict)

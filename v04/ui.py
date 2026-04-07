@@ -66,6 +66,7 @@ class UDIUploadUI:
                 "reprocessed": "tc_jsb620",
                 "spec_value": "tc_jsb430",
                 "spec_unit": "tc_jsb440",
+                "first_market": "tc_jsb390",
                 "marketing_status": "tc_jsb400",
             },
             "MDD": {
@@ -481,6 +482,7 @@ class UDIUploadUI:
             ("reprocessed", "Reprocessed"),
             ("spec_value", "Spec Value"),
             ("spec_unit", "Spec Unit"),
+            ("first_market", "First Marketing Status"),
             ("marketing_status", "Marketing Status Decription"),
         ]
 

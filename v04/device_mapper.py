@@ -1,5 +1,5 @@
 import pandas as pd
-from test_marketing_status import text_to_marketing_status_list
+from test_marketing_status import text_to_marketing_status_list, toISOcountry
 
 DEFAULT_FIELD_MAPPING = {
     "COMMON": {
@@ -34,6 +34,7 @@ DEFAULT_FIELD_MAPPING = {
         "reprocessed": "tc_jsb620",
         "spec_value": "tc_jsb430",
         "spec_unit": "tc_jsb440",
+        "first_market": "tc_jsb390",
         "marketing_status": "tc_jsb400",
     },
     "MDD": {
@@ -115,6 +116,7 @@ def build_common_fields(row, mapping):
     else:
         productionIdentifier = None
 
+    first_market = toISOcountry(get_mapped_value(row, mapping, "COMMON", "first_market"))
     marketing_status_description = get_mapped_value(row, mapping, "COMMON", "marketing_status")
     # print("☆☆☆☆☆☆\n"+str(marketing_status_description)+"\n☆☆☆☆☆☆")
     marketing_status_list = text_to_marketing_status_list(marketing_status_description) if marketing_status_description else []
@@ -152,6 +154,7 @@ def build_common_fields(row, mapping):
         "is_latex": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "latex")),
         "is_reprocessed": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "reprocessed")),
         "spec": build_spec(row, mapping),
+        "first_market": first_market,
         "marketing_status_list": marketing_status_list
     }
 
@@ -160,6 +163,8 @@ def row_to_dict_MDR(row, mapping, ActorCodes):
     print("進到 row_to_dict_MDR()")
     c = build_common_fields(row, mapping)
     print("marketing_status_list =", c.get("marketing_status_list"))
+    print("first_market =", c.get("first_market"))
+    marketInfos_to_dict(c.get("marketing_status_list", []), c.get("first_market"))
 
     b_di_code = get_mapped_value(row, mapping, "MDR", "basicudi_di")
     b_entity = "GS1"
@@ -249,20 +254,11 @@ def row_to_dict_MDR(row, mapping, ActorCodes):
                 ),
                 # NO MARKETINFOS
                 "udidi:numberOfReuses": c["numberOfReuses"],
+                
                 **(
                     {
-                        "udidi:marketInfos": {
-                            "marketinfo:marketInfo": [
-                                {
-                                    "marketinfo:country": item["country"],
-                                    "marketinfo:originalPlacedOnTheMarket": "true",
-                                    # "marketinfo:startDate": item["datestart"]
-                                }
-                                for item in c.get("marketing_status_list", [])
-                            ]
-                        }
-                    }
-                    if c.get("marketing_status_list") else {}
+                        "udidi:marketInfos": marketInfos_to_dict(c.get("marketing_status_list", []), c.get("first_market"))
+                    } if c.get("marketing_status_list") or c.get("first_market") else {}
                 ),
                 "udidi:baseQuantity": c["baseQuantity"],
                 # NO MARKETINFOS
@@ -434,6 +430,32 @@ def row_to_dict_MDD(row, mapping, ActorCodes):
         }
     }
 
+def marketInfos_to_dict(marketing_status_list, first_market):
+    market_info_list = []
+    for item in marketing_status_list:
+        if item["country"] == "N": continue
+        market_info = {
+            "marketinfo:country": item["country"],
+            "marketinfo:originalPlacedOnTheMarket": "false",
+            # "marketinfo:startDate": item["datestart"]
+        }
+        market_info_list.append(market_info)
+
+    if first_market and first_market != "N":
+
+        if first_market not in [item["marketinfo:country"] for item in market_info_list]:
+            market_info_list.append({
+                "marketinfo:country": first_market,
+                "marketinfo:originalPlacedOnTheMarket": "true",
+                # "marketinfo:startDate": item["datestart"]
+            })
+        else:
+            for market_info in market_info_list:
+                if market_info["marketinfo:country"] == first_market:
+                    market_info["marketinfo:originalPlacedOnTheMarket"] = "true"
+                    break
+
+    return {"marketinfo:marketInfo": market_info_list} if market_info_list else {}
 
 def df_to_dict(df, ActorCodes, field_mapping=None): #TODO ActorCodes
     device_dict_list = []

@@ -22,6 +22,19 @@ DEFAULT_FIELD_MAPPING = {
     "MDR": {},
 }
 
+EXPORT_MODE_CONFIG = {
+    "DEVICE_POST": {
+        "service_id": "DEVICE",
+        "service_operation": "POST",
+        "payload_root": "device:Device",
+    },
+    "UDI_DI_POST": {
+        "service_id": "UDI_DI",
+        "service_operation": "POST",
+        "payload_root": "device:Device",   # 先沿用你目前的資料結構
+    },
+}
+
 def merge_required_mapping(field_mapping=None):
     merged = {
         "COMMON": dict(DEFAULT_FIELD_MAPPING["COMMON"]),
@@ -84,13 +97,18 @@ def generate_output_path(output_dir):
     return output_path
 
 
-def df_to_xml_files(devices, output_dir, config):
+def df_to_xml_files(devices, output_dir, config, export_mode="DEVICE_POST"):
+    mode_config = EXPORT_MODE_CONFIG.get(export_mode, EXPORT_MODE_CONFIG["DEVICE_POST"])
+    payload_root = mode_config["payload_root"]
+    service_id = mode_config["service_id"]
+    service_operation = mode_config["service_operation"]
+
     device_nodes = [d["device:Device"] for d in devices]
 
     push_dict = wrap_with_push(
-        {"device:Device": device_nodes},
-        service_id="DEVICE",
-        service_operation="POST",
+        {payload_root: device_nodes},
+        service_id=service_id,
+        service_operation=service_operation,
         service_access_token=config["service_access_token"],
         sender_actor_code=config["sender_actor_code"],
         sender_node_id=config["sender_node_id"],
@@ -104,18 +122,19 @@ def df_to_xml_files(devices, output_dir, config):
     return output_path
 
 
-def export_excel_to_xml(file_path, output_dir, sheet_name=None, config=None, field_mapping=None):
+def export_excel_to_xml(file_path, output_dir, sheet_name=None, config=None,
+    field_mapping=None, export_mode="DEVICE_POST"):
     ActorCodes = {k: v for k, v in config.items() if k.endswith("ActorCode")}
 
     df = excel_to_df(file_path, sheet_name, field_mapping=field_mapping)
     devices = df_to_dict(df, ActorCodes, field_mapping=field_mapping)
-    output_path = df_to_xml_files(devices, output_dir, config)
+    output_path = df_to_xml_files(devices, output_dir, config, export_mode=export_mode)
 
     return {
         "df_count": len(df),
         "device_count": len(devices),
         "output_path": output_path,
-
+        "export_mode": export_mode,
     }
 
 

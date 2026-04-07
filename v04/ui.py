@@ -30,6 +30,9 @@ class UDIUploadUI:
         self.output_dir = tk.StringVar()
         self.available_sheets = []
 
+        # XML 輸出模式：DEVICE.POST / UDI_DI.POST
+        self.export_mode = tk.StringVar(value="DEVICE_POST")
+
         self._build_ui()
 
     def load_settings(self):
@@ -204,6 +207,24 @@ class UDIUploadUI:
         ttk.Entry(form, textvariable=self.output_dir, width=62).grid(row=2, column=1, sticky="ew", padx=8)
         ttk.Button(form, text="瀏覽", command=self.select_output_dir).grid(row=2, column=2, pady=6)
 
+        ttk.Label(form, text="輸出模式：").grid(row=3, column=0, sticky="nw", pady=6)
+        mode_frame = ttk.Frame(form)
+        mode_frame.grid(row=3, column=1, sticky="w", padx=8, pady=6)
+
+        ttk.Radiobutton(
+            mode_frame,
+            text="新增 Basic UDI",
+            variable=self.export_mode,
+            value="DEVICE_POST"
+        ).pack(side="left", padx=(0, 16))
+
+        ttk.Radiobutton(
+            mode_frame,
+            text="更新 Basic UDI",
+            variable=self.export_mode,
+            value="UDI_DI_POST"
+        ).pack(side="left")
+
         form.columnconfigure(1, weight=1)
 
         button_frame = ttk.Frame(container)
@@ -327,12 +348,14 @@ class UDIUploadUI:
                 self.output_dir.get(),
                 self.sheet_name.get().strip() or None,
                 config=config,
-                field_mapping=self.settings.get("field_mapping", {})
+                field_mapping=self.settings.get("field_mapping", {}),
+                export_mode=self.export_mode.get()
             )
 
             self.log(f'已讀取資料，共 {result["df_count"]} 筆符合條件。')
             self.log(f'已轉換裝置資料，共 {result["device_count"]} 筆。')
             self.log(f'XML 檔案輸出完成：{result["output_path"]}')
+            self.log(f"輸出模式：{self.export_mode.get()}")
             messagebox.showinfo("完成", f'XML 檔案已成功產生：\n{result["output_path"]}')
 
         except Exception as e:

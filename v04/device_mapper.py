@@ -118,7 +118,7 @@ def build_common_fields(row, mapping):
 
     first_market = toISOcountry(get_mapped_value(row, mapping, "COMMON", "first_market"))
     marketing_status_description = get_mapped_value(row, mapping, "COMMON", "marketing_status")
-    # print("☆☆☆☆☆☆\n"+str(marketing_status_description)+"\n☆☆☆☆☆☆")
+    print("☆☆☆☆☆☆\n"+str(marketing_status_description)+"\n☆☆☆☆☆☆")
     marketing_status_list = text_to_marketing_status_list(marketing_status_description) if marketing_status_description else []
 
     return {

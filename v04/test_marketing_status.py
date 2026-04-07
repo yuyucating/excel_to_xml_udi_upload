@@ -1,17 +1,17 @@
 import pandas as pd
 
 def text_to_marketing_status_list(marketing_status_description):
+    print(text_to_marketing_status_list.__name__ + " called")
     print(marketing_status_description)
     marketing_status_list = marketing_status_description.split("。") if pd.notna(marketing_status_description) else []
     marketing_status_list = [x for x in marketing_status_list if x.strip()]  # 移除空字符串
-
+    print(marketing_status_list)
     result = []
     for status in marketing_status_list:
         if "," not in status:
             country = toISOcountry(status.strip())
             datestart = None
             dateend = None
-            continue
         else:
             country = toISOcountry(status.split(",")[0].strip())
             date_range = status.split(",")[1].replace("From ", "").replace(" To ", "/") if status.split(",")[1] else None
@@ -22,6 +22,7 @@ def text_to_marketing_status_list(marketing_status_description):
     return result
 
 def toISOcountry(country_name):
+    print(country_name, "進行 toISOcountry")
     if not country_name:
         return ""
 
@@ -97,6 +98,7 @@ def toISOcountry(country_name):
     # 英文轉小寫比對
     key = name.lower()
 
+    print(country_mapping.get(key, country_mapping.get(name, name)), "為 ISO 國家碼")
     return country_mapping.get(key, country_mapping.get(name, name))
 
 if __name__ == "__main__":

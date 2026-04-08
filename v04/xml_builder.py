@@ -15,7 +15,14 @@ NS = {
     "marketinfo": "https://ec.europa.eu/tools/eudamed/dtx/datamodel/Entity/MktInfo/MarketInfo/v1",
     "links": "https://ec.europa.eu/tools/eudamed/dtx/datamodel/Entity/Links/v1",
     "lsn": "https://ec.europa.eu/tools/eudamed/dtx/datamodel/Entity/Common/LanguageSpecific/v1",
-    "eudi": "https://ec.europa.eu/tools/eudamed/dtx/datamodel/Entity/Device/LegacyDevice/EUDI/v1"
+    "eudi": "https://ec.europa.eu/tools/eudamed/dtx/datamodel/Entity/Device/LegacyDevice/EUDI/v1",
+    "e": "https://ec.europa.eu/tools/eudamed/dtx/datamodel/Entity/v1",
+    "message": "https://ec.europa.eu/tools/eudamed/dtx/servicemodel/Message/v1",
+    "mi": "https://ec.europa.eu/tools/eudamed/dtx/datamodel/Entity/MktInfo/MarketInfo/v1",
+    "service": "https://ec.europa.eu/tools/eudamed/dtx/servicemodel/Service/v1",
+    "lngs": "https://ec.europa.eu/tools/eudamed/dtx/datamodel/Entity/Common/LanguageSpecific/v1",
+    "udidiDatas": "https://ec.europa.eu/tools/eudamed/dtx/datamodel/Entity/Device/v1",
+    "commondevice": "https://ec.europa.eu/tools/eudamed/dtx/datamodel/Entity/Device/CommonDevice/v1"
 }
 
 for prefix, uri in NS.items():
@@ -62,7 +69,7 @@ def dict_to_xml(parent: ET.Element, data):
         parent.text = str(data)
 
 
-def wrap_with_push(
+def df_to_xml_files(
     payload_dict: dict,
     *,
     service_id: str = "DEVICE",

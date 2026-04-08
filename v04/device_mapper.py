@@ -159,12 +159,12 @@ def build_common_fields(row, mapping):
     }
 
 
-def row_to_dict_MDR(row, mapping, ActorCodes):
-    print("進到 row_to_dict_MDR()")
+def row_to_dict_MDR_DEVICE_POST(row, mapping, ActorCodes, export_mode="DEVICE_POST"):
+    print("進到 row_to_dict_MDR_DEVICE_POST()")
     c = build_common_fields(row, mapping)
     print("marketing_status_list =", c.get("marketing_status_list"))
     print("first_market =", c.get("first_market"))
-    marketInfos_to_dict(c.get("marketing_status_list", []), c.get("first_market"))
+    market_infos = marketInfos_to_dict(c.get("marketing_status_list", []), c.get("first_market"))
 
     b_di_code = get_mapped_value(row, mapping, "MDR", "basicudi_di")
     b_entity = "GS1"
@@ -181,7 +181,7 @@ def row_to_dict_MDR(row, mapping, ActorCodes):
     certificate_type = "MDR_TYPE_EXAMINATION"
 
 
-    return {
+    mdr_dict = {
         "device:Device": {
             "@xsi:type": "device:MDRDeviceType",
             "device:MDRBasicUDI": {
@@ -254,11 +254,10 @@ def row_to_dict_MDR(row, mapping, ActorCodes):
                 ),
                 # NO MARKETINFOS
                 "udidi:numberOfReuses": c["numberOfReuses"],
-                
                 **(
                     {
-                        "udidi:marketInfos": marketInfos_to_dict(c.get("marketing_status_list", []), c.get("first_market"))
-                    } if c.get("marketing_status_list") or c.get("first_market") else {}
+                        "udidi:marketInfos": market_infos
+                    } if market_infos else {}
                 ),
                 "udidi:baseQuantity": c["baseQuantity"],
                 # NO MARKETINFOS
@@ -283,8 +282,13 @@ def row_to_dict_MDR(row, mapping, ActorCodes):
                 ),   
     }}}
 
+    if export_mode == "UDI_DI_POST":
+        mdr_dict["device:Device"].pop("device:MDRBasicUDI", None)
 
-def row_to_dict_MDD(row, mapping, ActorCodes):
+    return mdr_dict
+
+
+def row_to_dict_MDD_DEVICE_POST(row, mapping, ActorCodes, export_mode="DEVICE_POST"):
     c = build_common_fields(row, mapping)
     b_di_code = get_mapped_value(row, mapping, "MDD", "basicudi_di") # modified to use tc_jsb070 for basicudi DICode - 2026-03-19
     b_entity = "EUDAMED" # modified to use EUDAMED as issuing entity for MDD - 2026-03-26
@@ -308,7 +312,7 @@ def row_to_dict_MDD(row, mapping, ActorCodes):
 
     certificate_type = "MDD_"+risk_lv # modified to use certificate type MDD - 2026-03-19
 
-    return {
+    mdd_dict = {
         "device:Device": {
             "@xsi:type": "device:MDEUDeviceType",
             "device:MDEUData": {
@@ -430,46 +434,116 @@ def row_to_dict_MDD(row, mapping, ActorCodes):
         }
     }
 
-def marketInfos_to_dict(marketing_status_list, first_market):
+    return mdd_dict
+
+def row_to_dict_MDR_UDIDI_POST(row, mapping, ActorCodes, export_mode="UDIDI_POST"):
+    c = build_common_fields(row, mapping)
+    market_infos = marketInfos_to_dict(c.get("marketing_status_list", []), c.get("first_market"), export_mode)
+
+    mdr_dict = {
+        "udidiDatas:UDIDIData": {
+            "@xsi:type": "udidi:MDRUDIDIDataType",
+            # "@xmlns:xs": "http://www.w3.org/2001/XMLSchema-instance",
+            "udidi:identifier": {
+                "commondevice:DICode": c["i_DICode"],
+                "commondevice:issuingEntityCode": c["i_Entity"]
+            },
+            "udidi:status": {
+                "commondevice:code": c["udi_status"]
+            },
+            "udidi:basicUDIIdentifier": {
+                "commondevice:DICode": c["i_DICode"],
+                "commondevice:issuingEntityCode": c["i_Entity"]
+            },
+            "udidi:MDNCodes": c["emdn_code"],
+            "udidi:referenceNumber": c["productNumber"],
+            "udidi:sterile": c["is_sterile"],
+            "udidi:sterilization": c["is_sterilization"],
+            **(
+                {
+                    "udidi:tradeNames": {
+                        "lsn:name": {
+                            "lsn:language": c["tradeName_lang"],
+                            "lsn:textValue": c["tradeName"]
+                        }
+                    }
+                }
+                if c.get("tradeName") and c["tradeName"] != 'N' else {}
+            ),
+            "udidi:numberOfReuses": c["numberOfReuses"],
+            **(
+                {
+                    "udidi:marketInfos": market_infos
+                } if market_infos else {}
+            ),
+            "udidi:baseQuantity": c["baseQuantity"],
+            "udidi:latex": c["is_latex"],
+            "udidi:reprocessed": c["is_reprocessed"],
+            "udidi:clinicalSizes": {
+                "commondevice:clinicalSize": {
+                    "@xsi:type": "commondevice:TextClinicalSizeType",
+                    "commondevice:clinicalSizeType": "CST999",
+                    "commondevice:clinicalSizeDescription":{
+                        "lsn:name": {
+                            "lsn:language": "EN",
+                            "lsn:textValue": c["spec"][1] if c.get("spec") and len(c["spec"]) >= 2 else None
+                        }
+                    },
+                    "commondevice:text": c["spec"][0] if c.get("spec") and len(c["spec"]) >= 2 else None
+                }
+            }
+        }
+    }
+
+    return mdr_dict
+
+def marketInfos_to_dict(marketing_status_list, first_market, export_mode="DEVICE_POST"):
+    if export_mode == "UDI_DI_POST":
+        miKey = "mi"
+    elif export_mode == "DEVICE_POST":
+        miKey = "marketinfo"
     market_info_list = []
     for item in marketing_status_list:
         if item["country"] == "N": continue
         market_info = {
-            "marketinfo:country": item["country"],
-            "marketinfo:originalPlacedOnTheMarket": "false",
-            # "marketinfo:startDate": item["datestart"]
+            f"{miKey}:country": item["country"],
+            f"{miKey}:originalPlacedOnTheMarket": "false",
+            # f"{miKey}:startDate": item["datestart"]
         }
         market_info_list.append(market_info)
 
     if first_market and first_market != "N":
 
-        if first_market not in [item["marketinfo:country"] for item in market_info_list]:
+        if first_market not in [item[f"{miKey}:country"] for item in market_info_list]:
             market_info_list.append({
-                "marketinfo:country": first_market,
-                "marketinfo:originalPlacedOnTheMarket": "true",
-                # "marketinfo:startDate": item["datestart"]
+                f"{miKey}:country": first_market,
+                f"{miKey}:originalPlacedOnTheMarket": "true",
+                # f"{miKey}:startDate": item["datestart"]
             })
         else:
             for market_info in market_info_list:
-                if market_info["marketinfo:country"] == first_market:
-                    market_info["marketinfo:originalPlacedOnTheMarket"] = "true"
+                if market_info[f"{miKey}:country"] == first_market:
+                    market_info[f"{miKey}:originalPlacedOnTheMarket"] = "true"
                     break
 
-    return {"marketinfo:marketInfo": market_info_list} if market_info_list else {}
+    return {f"{miKey}:marketInfo": market_info_list} if market_info_list else {}
 
-def df_to_dict(df, ActorCodes, field_mapping=None): #TODO ActorCodes
+def df_to_dict(df, ActorCodes, field_mapping=None, export_mode="DEVICE_POST"): #TODO ActorCodes
     device_dict_list = []
     mapping = merge_field_mapping(field_mapping)
 
     for _, row in df.iterrows():
         reg_type = get_mapped_value(row, mapping, "COMMON", "reg_type")
+        print("★★★★★★★ reg_type =", reg_type)
 
         if reg_type == "MDD":
-            device_data = row_to_dict_MDD(row, mapping, ActorCodes)
+            device_data = row_to_dict_MDD_DEVICE_POST(row, mapping, ActorCodes, export_mode=export_mode)
         elif reg_type == "MDR":
-            device_data = row_to_dict_MDR(row, mapping, ActorCodes)
+            device_data = row_to_dict_MDR_DEVICE_POST(row, mapping, ActorCodes, export_mode=export_mode) if export_mode == "DEVICE_POST" else row_to_dict_MDR_UDIDI_POST(row, mapping, ActorCodes, export_mode=export_mode)
         else:
             continue
+        print("★★★★★★★ reg_type =", reg_type, "DONE")
+        print("★★★★★★★ device_data =", device_data)
 
         device_dict_list.append(device_data)
 

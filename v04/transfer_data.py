@@ -103,7 +103,10 @@ def df_to_xml_files(devices, output_dir, config, export_mode="DEVICE_POST"):
     service_id = mode_config["service_id"]
     service_operation = mode_config["service_operation"]
 
-    device_nodes = [d["device:Device"] for d in devices]
+    if export_mode == "UDI_DI_POST":
+        device_nodes = [d["udidiDatas:UDIDIData"] for d in devices]
+    elif export_mode == "DEVICE_POST":
+        device_nodes = [d["device:Device"] for d in devices]
 
     push_dict = wrap_with_push(
         {payload_root: device_nodes},
@@ -127,7 +130,7 @@ def export_excel_to_xml(file_path, output_dir, sheet_name=None, config=None,
     ActorCodes = {k: v for k, v in config.items() if k.endswith("ActorCode")}
 
     df = excel_to_df(file_path, sheet_name, field_mapping=field_mapping)
-    devices = df_to_dict(df, ActorCodes, field_mapping=field_mapping)
+    devices = df_to_dict(df, ActorCodes, field_mapping=field_mapping, export_mode=export_mode)
     output_path = df_to_xml_files(devices, output_dir, config, export_mode=export_mode)
 
     return {

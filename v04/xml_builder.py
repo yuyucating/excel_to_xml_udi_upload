@@ -69,7 +69,7 @@ def dict_to_xml(parent: ET.Element, data):
         parent.text = str(data)
 
 
-def df_to_xml_files(
+def wrap_with_push(
     payload_dict: dict,
     *,
     service_id: str = "DEVICE",

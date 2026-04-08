@@ -31,7 +31,7 @@ EXPORT_MODE_CONFIG = {
     "UDI_DI_POST": {
         "service_id": "UDI_DI",
         "service_operation": "POST",
-        "payload_root": "device:Device",   # 先沿用你目前的資料結構
+        "payload_root": "udidiDatas:UDIDIData",
     },
 }
 

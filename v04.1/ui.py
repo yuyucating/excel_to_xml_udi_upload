@@ -9,6 +9,16 @@ from tkinter import ttk, filedialog, messagebox
 
 from transfer_data import export_excel_to_xml
 
+# 預留給未來的資料預檢模組
+try:
+    from data_precheck import precheck_data_format, export_precheck_report
+except ImportError:
+    def precheck_data_format(*args, **kwargs):
+        raise NotImplementedError("尚未建立 data_precheck.py / precheck_data_format()")
+
+    def export_precheck_report(*args, **kwargs):
+        raise NotImplementedError("尚未建立 data_precheck.py / export_precheck_report()")
+
 def get_app_dir():
     if getattr(sys, "frozen", False):
         return os.path.dirname(sys.executable)
@@ -38,6 +48,8 @@ class UDIUploadUI:
         self._build_ui()
 
     def load_settings(self):
+
+        # 系統原廠預設欄位對應
         default_field_mapping = {
             "COMMON": {
                 "reg_type": "tc_jsb030",
@@ -235,14 +247,13 @@ class UDIUploadUI:
         button_group = ttk.Frame(button_frame)
         button_group.pack(anchor="center")
 
+        self.precheck_button = ttk.Button(button_group, text="預檢資料格式", command=self.run_precheck)
+        self.precheck_button.pack(side="left", padx=6, ipadx=12, ipady=8)
+
         self.start_button = ttk.Button(button_group, text="開始", command=self.start_process)
         self.start_button.pack(side="left", padx=6, ipadx=18, ipady=8)
 
-        self.open_output_button = ttk.Button(
-            button_group,
-            text="開啟輸出資料夾",
-            command=self.open_output_dir
-        )
+        self.open_output_button = ttk.Button(button_group, text="開啟輸出資料夾", command=self.open_output_dir)
         self.open_output_button.pack(side="left", padx=6, ipadx=12, ipady=8)
 
         log_frame = ttk.LabelFrame(container, text="執行狀態", padding=12)
@@ -251,6 +262,69 @@ class UDIUploadUI:
         self.log_text = tk.Text(log_frame, height=10, wrap="word", font=("Consolas", 10))
         self.log_text.pack(fill="both", expand=True)
         self.log("UI 已啟動，請選擇 Excel 檔案與輸出資料夾。")
+
+    def validate_basic_inputs(self):
+        if not self.excel_path.get().strip():
+            messagebox.showwarning("缺少資料", "請先選擇 Excel 檔案。")
+            return False
+
+        if self.available_sheets and self.sheet_name.get().strip() not in self.available_sheets:
+            messagebox.showwarning("工作表錯誤", "所選工作表不存在於目前 Excel 檔案中。")
+            return False
+
+        if not self.output_dir.get().strip():
+            messagebox.showwarning("缺少資料", "請先選擇輸出資料夾。")
+            return False
+
+        return True
+
+    def run_precheck(self):
+        if not self.validate_basic_inputs():
+            return
+
+        try:
+            self.precheck_button.config(state="disabled")
+            self.start_button.config(state="disabled")
+
+            self.log("開始執行資料格式預檢...")
+            self.log(f"Excel 檔案：{self.excel_path.get()}")
+            self.log(f"工作表名稱：{self.sheet_name.get()}")
+            self.log(f"輸出模式：{self.export_mode.get()}")
+
+            result = precheck_data_format(
+                excel_path=self.excel_path.get(),
+                sheet_name=self.sheet_name.get().strip() or None,
+                output_dir=self.output_dir.get(),
+                field_mapping=self.settings.get("field_mapping", {}),
+                export_mode=self.export_mode.get(),
+                settings=self.settings,
+            )
+
+            if result is not None:
+                self.log(result.get("message", "預檢完成。"))
+                self.log(f'錯誤：{result.get("error_count", 0)}，警告：{result.get("warning_count", 0)}')
+
+                report_path = export_precheck_report(result, self.output_dir.get())
+                if report_path:
+                    self.log(f"預檢報告已輸出：{report_path}")
+                    messagebox.showinfo("完成", f"資料格式預檢完成。\n\n報告位置：\n{report_path}")
+                else:
+                    messagebox.showinfo("完成", f"資料格式預檢完成。\n\n報告位置：\n{report_path}")
+            else:
+                self.log("預檢完成。")
+                messagebox.showinfo("完成", f"資料格式預檢完成。\n\n報告位置：\n{report_path}")
+
+        except NotImplementedError as e:
+            self.log(f"預檢功能尚未實作：{e}")
+            messagebox.showinfo("尚未完成", str(e))
+        except Exception as e:
+            self.log("預檢失敗。")
+            self.log(str(e))
+            self.log(traceback.format_exc())
+            messagebox.showerror("錯誤", f"預檢失敗：\n{e}")
+        finally:
+            self.precheck_button.config(state="normal")
+            self.start_button.config(state="normal")
 
     def select_excel(self):
         path = filedialog.askopenfilename(
@@ -571,8 +645,6 @@ class UDIUploadUI:
             canvas.bind("<Leave>", _unbind_mousewheel)
             scrollable_frame.bind("<Enter>", _bind_mousewheel)
             scrollable_frame.bind("<Leave>", _unbind_mousewheel)
-
-
 
         common_tab = ttk.Frame(notebook, padding=12)
         notebook.add(common_tab, text="共用欄位")

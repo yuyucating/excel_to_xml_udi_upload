@@ -355,6 +355,7 @@ class UDIUploadUI:
             )
 
             self.log(f'已讀取資料，共 {result["df_count"]} 筆符合條件。')
+            self.log(f'有 {result["df_removed_count"]} 筆資料因缺少必要欄位而被移除。')
             self.log(f'已轉換裝置資料，共 {result["device_count"]} 筆。')
             self.log(f'XML 檔案輸出完成：{result["output_path"]}')
             self.log(f"輸出模式：{self.export_mode.get()}")

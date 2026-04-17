@@ -38,6 +38,8 @@ class UDIUploadUI:
         self._build_ui()
 
     def load_settings(self):
+
+        # 系統原廠預設欄位對應
         default_field_mapping = {
             "COMMON": {
                 "reg_type": "tc_jsb030",

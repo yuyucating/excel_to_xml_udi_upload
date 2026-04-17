@@ -36,6 +36,7 @@ EXPORT_MODE_CONFIG = {
 }
 
 def merge_required_mapping(field_mapping=None):
+    # 先定義預設值為 DEFAULT_FIELD_MAPPING 的內容，如果 UI 有帶入 field_mapping 就用 UI 的值覆蓋預設值
     merged = {
         "COMMON": dict(DEFAULT_FIELD_MAPPING["COMMON"]),
         "MDD": {},
@@ -47,7 +48,9 @@ def merge_required_mapping(field_mapping=None):
     return merged
 
 
+# 驗證是否具備必要欄位
 def validate_required_columns(df, field_mapping=None):
+    # mapping 取得 UI 預設值，如果 UI 沒有帶入則使用 DEFAULT_FIELD_MAPPING 的預設值
     mapping = merge_required_mapping(field_mapping)
 
     required_columns = []
@@ -60,7 +63,7 @@ def validate_required_columns(df, field_mapping=None):
     if missing:
         raise ValueError(f"Excel 缺少必要欄位: {', '.join(missing)}")
 
-
+# 將為完整的資料列移除
 def excel_to_df(file_path, sheet_name=None, field_mapping=None):
     if sheet_name is None:
         sheet_name = "p_zta"
@@ -68,7 +71,7 @@ def excel_to_df(file_path, sheet_name=None, field_mapping=None):
     df = pd.read_excel(
         file_path,
         sheet_name=sheet_name,
-        dtype={"tc_jsb001": str, "tc_jsb710": str}
+        dtype={"tc_jsb001": str, "tc_jsb710": str} # 避免 UDI 編碼失去前導零
     )
 
     validate_required_columns(df, field_mapping)
@@ -77,8 +80,31 @@ def excel_to_df(file_path, sheet_name=None, field_mapping=None):
     risk_col = field_mapping.get("COMMON", {}).get("risk_class", "tc_jsb080") if field_mapping else "tc_jsb080"
 
     subset_cols = [c for c in [reg_col, risk_col] if c in df.columns]
+
+    # 紀錄被移除的資料
+    df_removed = df[df[subset_cols].isna().any(axis=1)]
+
+    # 👉 標記缺少欄位（推薦）
+    def find_missing_reason(row):
+        missing = [col for col in subset_cols if pd.isna(row[col])]
+        return ", ".join(missing)
+
+    if not df_removed.empty:
+        df_removed["missing_fields"] = df_removed.apply(find_missing_reason, axis=1)
+
+        # 👉 產生 errorlog 檔名
+        base_name = os.path.splitext(os.path.basename(file_path))[0]
+        error_file = f"{base_name}_errorlog.xlsx"
+
+        # 👉 輸出 Excel
+        df_removed.to_excel(error_file, index=False)
+
+        print(f"⚠️ 已輸出錯誤資料至: {error_file}")
+
+    # 只保留在必要欄位都有值的資料列
     df_eu = df.dropna(subset=subset_cols)
-    return df_eu
+
+    return df_eu, df_removed
 
 
 def generate_output_path(output_dir):
@@ -125,17 +151,20 @@ def df_to_xml_files(devices, output_dir, config, export_mode="DEVICE_POST"):
 
     return output_path
 
-
+# ui.py 的進入點
 def export_excel_to_xml(file_path, output_dir, sheet_name=None, config=None,
     field_mapping=None, export_mode="DEVICE_POST"):
+    # config 是從 UI 設定帶出來的資料
+
     ActorCodes = {k: v for k, v in config.items() if k.endswith("ActorCode")}
 
-    df = excel_to_df(file_path, sheet_name, field_mapping=field_mapping)
+    df, df_removed = excel_to_df(file_path, sheet_name, field_mapping=field_mapping)
     devices = df_to_dict(df, ActorCodes, field_mapping=field_mapping, export_mode=export_mode)
     output_path = df_to_xml_files(devices, output_dir, config, export_mode=export_mode)
 
     return {
         "df_count": len(df),
+        "df_removed_count": len(df_removed),
         "device_count": len(devices),
         "output_path": output_path,
         "export_mode": export_mode,

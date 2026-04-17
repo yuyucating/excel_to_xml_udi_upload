@@ -89,7 +89,6 @@ def safe_int(value, default=0):
     except (TypeError, ValueError):
         return default
 
-
 def build_spec(row, mapping):
     spec_value = get_mapped_value(row, mapping, "COMMON", "spec_value")
     spec_unit = get_mapped_value(row, mapping, "COMMON", "spec_unit")
@@ -98,7 +97,6 @@ def build_spec(row, mapping):
         spec = [spec_value, spec_unit]
         return spec
     return None
-
 
 def build_common_fields(row, mapping):
 
@@ -118,7 +116,6 @@ def build_common_fields(row, mapping):
 
     first_market = toISOcountry(get_mapped_value(row, mapping, "COMMON", "first_market"))
     marketing_status_description = get_mapped_value(row, mapping, "COMMON", "marketing_status")
-    print("☆☆☆☆☆☆\n"+str(marketing_status_description)+"\n☆☆☆☆☆☆")
     marketing_status_list = text_to_marketing_status_list(marketing_status_description) if marketing_status_description else []
 
     return {
@@ -158,9 +155,9 @@ def build_common_fields(row, mapping):
         "marketing_status_list": marketing_status_list
     }
 
-
 def row_to_dict_MDR_DEVICE_POST(row, mapping, ActorCodes, export_mode="DEVICE_POST"):
     print("進到 row_to_dict_MDR_DEVICE_POST()")
+
     c = build_common_fields(row, mapping)
     print("marketing_status_list =", c.get("marketing_status_list"))
     print("first_market =", c.get("first_market"))
@@ -181,7 +178,7 @@ def row_to_dict_MDR_DEVICE_POST(row, mapping, ActorCodes, export_mode="DEVICE_PO
     certificate_type = "MDR_TYPE_EXAMINATION"
 
 
-    mdr_dict = {
+    MDR_DEVICE_POST = {
         "device:Device": {
             "@xsi:type": "device:MDRDeviceType",
             "device:MDRBasicUDI": {
@@ -233,12 +230,6 @@ def row_to_dict_MDR_DEVICE_POST(row, mapping, ActorCodes, export_mode="DEVICE_PO
                     "commondi:issuingEntityCode": b_entity
                 },
                 "udidi:MDNCodes": c["emdn_code"],
-                # "udidi:productionIdentifier": {
-                #     "udidi:lotNumber": c["is_pi_lotNumber"],
-                #     "udidi:serialNumber": c["is_pi_serialNumber"],
-                #     "udidi:manufacturingDate": c["is_pi_manufacturingDate"],
-                #     "udidi:expirationDate": c["is_pi_expirationDate"]
-                # },
                 "udidi:productionIdentifier": c["pi_code"], # 2026-03-27 modified to use pi_code for production identifier
                 "udidi:referenceNumber": c["productNumber"],
                 "udidi:sterile": c["is_sterile"],
@@ -282,11 +273,65 @@ def row_to_dict_MDR_DEVICE_POST(row, mapping, ActorCodes, export_mode="DEVICE_PO
                 ),   
     }}}
 
-    if export_mode == "UDI_DI_POST":
-        mdr_dict["device:Device"].pop("device:MDRBasicUDI", None)
+    MDR_UDIDI_POST = {
+        "udidiDatas:UDIDIData": {
+            "@xsi:type": "udidi:MDRUDIDIDataType",
+            "udidi:identifier": {
+                "commondevice:DICode": c["i_DICode"],
+                "commondevice:issuingEntityCode": c["i_Entity"]
+            },
+                "udidi:status": {
+                    "commondevice:code": c["udi_status"]
+                },
+                "udidi:basicUDIIdentifier": {
+                    "commondevice:DICode": b_di_code,
+                    "commondevice:issuingEntityCode": b_entity
+                },
+                "udidi:MDNCodes": c["emdn_code"],
+                "udidi:productionIdentifier": c["pi_code"],
+                "udidi:referenceNumber": c["productNumber"],
+                "udidi:sterile": c["is_sterile"],
+                "udidi:sterilization": c["is_sterilization"],
+                **(
+                    {
+                        "udidi:tradeNames": {
+                            "lsn:name": {
+                                "lsn:language": c["tradeName_lang"],
+                                "lsn:textValue": c["tradeName"]
+                        }},
+                    } if c.get("tradeName") and c["tradeName"] != 'N' else {}
+                ),
+                "udidi:numberOfReuses": c["numberOfReuses"],
+                **(
+                    {
+                        "udidi:marketInfos": market_infos
+                    } if market_infos else {}
+                ),
+                "udidi:baseQuantity": c["baseQuantity"],
+                "udidi:latex": c["is_latex"],
+                "udidi:reprocessed": c["is_reprocessed"],
+                **( # dict unpack 寫法：只有當 c["spec"] 不為 None 時才會加入 clinicalSizes 的內容 - 2026-03-20
+                    {
+                        "udidi:clinicalSizes": {
+                            "commondi:clinicalSize": {
+                                "@xsi:type": "commondi:TextClinicalSizeType",
+                                "commondi:clinicalSizeType": "CST999",
+                                "commondi:clinicalSizeDescription":{
+                                    "lsn:name": {
+                                        "lsn:language": "EN",
+                                        "lsn:textValue": c["spec"][1]
+                                }},
+                                "commondi:text": c["spec"][0]
+                    }}}
+                    if c.get("spec") and len(c["spec"]) >= 2 else {}
+                ),   
+    }}
 
-    return mdr_dict
 
+    if export_mode == "DEVICE_POST":
+        return MDR_DEVICE_POST
+    elif export_mode == "UDI_DI_POST":
+        return MDR_UDIDI_POST
 
 def row_to_dict_MDD_DEVICE_POST(row, mapping, ActorCodes, export_mode="DEVICE_POST"):
     c = build_common_fields(row, mapping)
@@ -296,6 +341,7 @@ def row_to_dict_MDD_DEVICE_POST(row, mapping, ActorCodes, export_mode="DEVICE_PO
     ARActorCode = ActorCodes.get("ARActorCode") # modified for mdi Europa GmbH - 2026-03-19
     basicudi = safe_str(get_mapped_value(row, mapping, "MDD", "basicudi_di"))
 
+    market_infos = marketInfos_to_dict(c.get("marketing_status_list", []), c.get("first_market"))
     critical_warnings = safe_str(get_mapped_value(row, mapping, "MDD", "critical_warning"))
     warning_value = "CW010" if critical_warnings == "Consult Instruction for Use" else None
     
@@ -332,16 +378,6 @@ def row_to_dict_MDD_DEVICE_POST(row, mapping, ActorCodes, export_mode="DEVICE_PO
                 "udidi:referenceNumber": c["productNumber"],
                 "udidi:sterile": c["is_sterile"],
                 "udidi:sterilization": c["is_sterilization"],
-                **(
-                    {
-                        "udidi:tradeNames": {
-                            "lsn:name": {
-                                "lsn:language": c["tradeName_lang"],
-                                "lsn:textValue": c["tradeName"]
-                            }
-                        },
-                    } if c.get("tradeName") and c["tradeName"] != 'N' else {}
-                ),
                 "udidi:criticalWarnings": {
                     "commondi:warning": {
                         "commondi:comments": {
@@ -356,25 +392,9 @@ def row_to_dict_MDD_DEVICE_POST(row, mapping, ActorCodes, export_mode="DEVICE_PO
                 "udidi:numberOfReuses": c["numberOfReuses"],
                 **(
                     {
-                        "udidi:marketInfos": {
-                            "marketinfo:marketInfo": [
-                                {
-                                    "marketinfo:country": item["country"],
-                                    "marketinfo:originalPlacedOnTheMarket": "true",
-                                    # "marketinfo:startDate": item["datestart"]
-                                }
-                                for item in c.get("marketing_status_list", [])
-                            ]
-                        }
-                    }
-                    if c.get("marketing_status_list") else {}
+                        "udidi:marketInfos": market_infos
+                    } if market_infos else {}
                 ),
-                # "udidi:marketInfos": {
-                #     "marketinfo:marketInfo": {
-                #         "marketinfo:country": "ES",
-                #         "marketinfo:originalPlacedOnTheMarket": "true"
-                #     }
-                # },
                 "udidi:latex": c["is_latex"],
                 "udidi:reprocessed": c["is_reprocessed"],
                 **( # dict unpack 寫法：只有當 c["spec"] 不為 None 時才會加入 clinicalSizes 的內容 - 2026-03-20
@@ -395,6 +415,7 @@ def row_to_dict_MDD_DEVICE_POST(row, mapping, ActorCodes, export_mode="DEVICE_PO
                     }
                     if c.get("spec") and len(c["spec"]) >= 2 else {}
                 )
+                
             },
             "device:MDEUDI": {
                 "basicudi:riskClass": 'CLASS_'+risk_lv,
@@ -438,6 +459,8 @@ def row_to_dict_MDD_DEVICE_POST(row, mapping, ActorCodes, export_mode="DEVICE_PO
 
 def row_to_dict_MDR_UDIDI_POST(row, mapping, ActorCodes, export_mode="UDIDI_POST"):
     c = build_common_fields(row, mapping)
+    b_di_code = get_mapped_value(row, mapping, "MDR", "basicudi_di")
+    b_entity = "GS1"
     market_infos = marketInfos_to_dict(c.get("marketing_status_list", []), c.get("first_market"), export_mode)
 
     mdr_dict = {
@@ -452,8 +475,8 @@ def row_to_dict_MDR_UDIDI_POST(row, mapping, ActorCodes, export_mode="UDIDI_POST
                 "commondevice:code": c["udi_status"]
             },
             "udidi:basicUDIIdentifier": {
-                "commondevice:DICode": c["i_DICode"],
-                "commondevice:issuingEntityCode": c["i_Entity"]
+                "commondevice:DICode": b_di_code,
+                "commondevice:issuingEntityCode": b_entity
             },
             "udidi:MDNCodes": c["emdn_code"],
             "udidi:referenceNumber": c["productNumber"],
@@ -498,6 +521,8 @@ def row_to_dict_MDR_UDIDI_POST(row, mapping, ActorCodes, export_mode="UDIDI_POST
     return mdr_dict
 
 def marketInfos_to_dict(marketing_status_list, first_market, export_mode="DEVICE_POST"):
+    print("★★★ Device_mapper.py marketInfos_to_dict() called")
+    print("★★★ export_mode =", export_mode)
     if export_mode == "UDI_DI_POST":
         miKey = "mi"
     elif export_mode == "DEVICE_POST":
@@ -511,21 +536,27 @@ def marketInfos_to_dict(marketing_status_list, first_market, export_mode="DEVICE
             # f"{miKey}:startDate": item["datestart"]
         }
         market_info_list.append(market_info)
-
+    print("★★★ market_info_list =", market_info_list)
+    print("★★★ first_market =", first_market)
     if first_market and first_market != "N":
 
         if first_market not in [item[f"{miKey}:country"] for item in market_info_list]:
+            print("1")
             market_info_list.append({
                 f"{miKey}:country": first_market,
                 f"{miKey}:originalPlacedOnTheMarket": "true",
                 # f"{miKey}:startDate": item["datestart"]
             })
         else:
+            print("2")
+            i = 0
             for market_info in market_info_list:
+                print(i)
                 if market_info[f"{miKey}:country"] == first_market:
                     market_info[f"{miKey}:originalPlacedOnTheMarket"] = "true"
+                    i+=1
                     break
-
+    print("★★★ Final market_info_list =", market_info_list)
     return {f"{miKey}:marketInfo": market_info_list} if market_info_list else {}
 
 def df_to_dict(df, ActorCodes, field_mapping=None, export_mode="DEVICE_POST"): #TODO ActorCodes
@@ -534,7 +565,6 @@ def df_to_dict(df, ActorCodes, field_mapping=None, export_mode="DEVICE_POST"): #
 
     for _, row in df.iterrows():
         reg_type = get_mapped_value(row, mapping, "COMMON", "reg_type")
-        print("★★★★★★★ reg_type =", reg_type)
 
         if reg_type == "MDD":
             device_data = row_to_dict_MDD_DEVICE_POST(row, mapping, ActorCodes, export_mode=export_mode)
@@ -542,9 +572,6 @@ def df_to_dict(df, ActorCodes, field_mapping=None, export_mode="DEVICE_POST"): #
             device_data = row_to_dict_MDR_DEVICE_POST(row, mapping, ActorCodes, export_mode=export_mode) if export_mode == "DEVICE_POST" else row_to_dict_MDR_UDIDI_POST(row, mapping, ActorCodes, export_mode=export_mode)
         else:
             continue
-        print("★★★★★★★ reg_type =", reg_type, "DONE")
-        print("★★★★★★★ device_data =", device_data)
-
         device_dict_list.append(device_data)
 
     return device_dict_list

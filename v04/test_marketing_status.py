@@ -1,8 +1,6 @@
 import pandas as pd
 
 def text_to_marketing_status_list(marketing_status_description):
-    print(text_to_marketing_status_list.__name__ + " called")
-    print(marketing_status_description)
     marketing_status_list = marketing_status_description.split("。") if pd.notna(marketing_status_description) else []
     marketing_status_list = [x for x in marketing_status_list if x.strip()]  # 移除空字符串
     print(marketing_status_list)
@@ -18,11 +16,9 @@ def text_to_marketing_status_list(marketing_status_description):
             datestart, dateend = date_range.split("/") if date_range else None
         result.append({"country": country, "datestart": datestart, "dateend": dateend})
     
-    print(result)
     return result
 
 def toISOcountry(country_name):
-    print(country_name, "進行 toISOcountry")
     if not country_name:
         return ""
 

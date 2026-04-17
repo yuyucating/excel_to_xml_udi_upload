@@ -16,6 +16,8 @@ def get_app_dir():
 
 class UDIUploadUI:
     def __init__(self, root):
+        #主畫面
+
         self.root = root
         self.root.title("UDI Bulk Upload XML 產生器")
         self.root.geometry("720x420")

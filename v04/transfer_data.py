@@ -116,9 +116,10 @@ def df_to_xml_files(devices, output_dir, config, export_mode="DEVICE_POST"):
         sender_actor_code=config["sender_actor_code"],
         sender_node_id=config["sender_node_id"],
         xsd_version="3.0.28",
+        export_mode=export_mode
     )
 
-    xml_str = dict_to_xml_string(push_dict)
+    xml_str = dict_to_xml_string(push_dict, export_mode=export_mode)
     output_path = generate_output_path(output_dir)
     save_xml(xml_str, output_path)
 

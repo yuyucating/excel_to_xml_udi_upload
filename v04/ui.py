@@ -8,6 +8,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
 from transfer_data import export_excel_to_xml
+from eudamed_response_xml_to_excel import xmls_to_merged_excel
 
 def get_app_dir():
     if getattr(sys, "frozen", False):
@@ -240,12 +241,11 @@ class UDIUploadUI:
         self.start_button = ttk.Button(button_group, text="開始", command=self.start_process)
         self.start_button.pack(side="left", padx=6, ipadx=18, ipady=8)
 
-        self.open_output_button = ttk.Button(
-            button_group,
-            text="開啟輸出資料夾",
-            command=self.open_output_dir
-        )
+        self.open_output_button = ttk.Button(button_group, text="開啟輸出資料夾", command=self.open_output_dir)
         self.open_output_button.pack(side="left", padx=6, ipadx=12, ipady=8)
+
+        self.convert_response_xml_button = ttk.Button(button_group, text="整理 Response XML", command=self.on_convert_response_xml_click)
+        self.convert_response_xml_button.pack(side="left", padx=6, ipadx=12, ipady=8)
 
         log_frame = ttk.LabelFrame(container, text="執行狀態", padding=12)
         log_frame.pack(fill="both", expand=True)
@@ -369,6 +369,17 @@ class UDIUploadUI:
             messagebox.showerror("錯誤", f"執行失敗：\n{e}")
         finally:
             self.start_button.config(state="normal")
+
+    def on_convert_response_xml_click(self):
+        xml_paths = filedialog.askopenfilenames(
+            title="Select Response XML files",
+            filetypes=[("XML files", "*.xml")]
+        )
+        if not xml_paths:
+            return
+
+        output_file = xmls_to_merged_excel(xml_paths)
+        messagebox.showinfo("完成", f"已輸出：\n{output_file}")
 
     def log(self, message):
         self.log_text.config(state="normal")

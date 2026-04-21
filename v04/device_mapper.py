@@ -335,7 +335,7 @@ def row_to_dict_MDR_DEVICE_POST(row, mapping, ActorCodes, export_mode="DEVICE_PO
 
 def row_to_dict_MDD_DEVICE_POST(row, mapping, ActorCodes, export_mode="DEVICE_POST"):
     c = build_common_fields(row, mapping)
-    b_di_code = get_mapped_value(row, mapping, "MDD", "basicudi_di") # modified to use tc_jsb070 for basicudi DICode - 2026-03-19
+    b_di_code = safe_str(get_mapped_value(row, mapping, "MDD", "basicudi_di"))
     b_entity = "EUDAMED" # modified to use EUDAMED as issuing entity for MDD - 2026-03-26
     MFActorCode = ActorCodes.get("MFActorCode") # modified for mdi Europa GmbH - 2026-03-19
     ARActorCode = ActorCodes.get("ARActorCode") # modified for mdi Europa GmbH - 2026-03-19
@@ -345,8 +345,9 @@ def row_to_dict_MDD_DEVICE_POST(row, mapping, ActorCodes, export_mode="DEVICE_PO
     critical_warnings = safe_str(get_mapped_value(row, mapping, "MDD", "critical_warning"))
     warning_value = "CW010" if critical_warnings == "Consult Instruction for Use" else None
     
-    certificate_expiry_raw = get_mapped_value(row, mapping, "MDD", "certificate_expiry")
-    certificate_expiry_mdd = str(certificate_expiry_raw).split(" ")[0] if pd.notna(certificate_expiry_raw) else None
+    certificate_expiry_mdd = safe_str(get_mapped_value(row, mapping, "MDD", "certificate_expiry")).replace("/", "-") if pd.notna(get_mapped_value(row, mapping, "MDD", "certificate_expiry")) else None
+    # certificate_expiry_raw = get_mapped_value(row, mapping, "MDD", "certificate_expiry")
+    # certificate_expiry_mdd = str(certificate_expiry_raw).split(" ")[0] if pd.notna(certificate_expiry_raw) else None
     
     mnb_actor_code = "2195"
     certificate_revision = safe_str(get_mapped_value(row, mapping, "MDD", "certificate_revision"))

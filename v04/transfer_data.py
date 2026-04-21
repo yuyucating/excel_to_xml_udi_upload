@@ -68,7 +68,7 @@ def excel_to_df(file_path, sheet_name=None, field_mapping=None):
     df = pd.read_excel(
         file_path,
         sheet_name=sheet_name,
-        dtype={"tc_jsb001": str, "tc_jsb710": str}
+        dtype={"tc_jsb001": str, "tc_jsb710": str, "TC_JSB001": str, "TC_JSB710": str}
     )
 
     df.columns = df.columns.str.lower()
@@ -135,6 +135,8 @@ def export_excel_to_xml(file_path, output_dir, sheet_name=None, config=None,
     df = excel_to_df(file_path, sheet_name, field_mapping=field_mapping)
     devices = df_to_dict(df, ActorCodes, field_mapping=field_mapping, export_mode=export_mode)
     output_path = df_to_xml_files(devices, output_dir, config, export_mode=export_mode)
+
+    print(df)
 
     return {
         "df_count": len(df),

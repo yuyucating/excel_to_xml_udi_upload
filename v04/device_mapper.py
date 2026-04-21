@@ -159,6 +159,7 @@ def row_to_dict_MDR_DEVICE_POST(row, mapping, ActorCodes, export_mode="DEVICE_PO
     print("進到 row_to_dict_MDR_DEVICE_POST()")
 
     c = build_common_fields(row, mapping)
+
     print("marketing_status_list =", c.get("marketing_status_list"))
     print("first_market =", c.get("first_market"))
     market_infos = marketInfos_to_dict(c.get("marketing_status_list", []), c.get("first_market"))
@@ -341,6 +342,9 @@ def row_to_dict_MDD_DEVICE_POST(row, mapping, ActorCodes, export_mode="DEVICE_PO
     ARActorCode = ActorCodes.get("ARActorCode") # modified for mdi Europa GmbH - 2026-03-19
     basicudi = safe_str(get_mapped_value(row, mapping, "MDD", "basicudi_di"))
 
+    print("★ tradeName_lang:", c["tradeName_lang"])
+    print("★ tradeName:", c["tradeName"])
+
     market_infos = marketInfos_to_dict(c.get("marketing_status_list", []), c.get("first_market"))
     critical_warnings = safe_str(get_mapped_value(row, mapping, "MDD", "critical_warning"))
     warning_value = "CW010" if critical_warnings == "Consult Instruction for Use" else None
@@ -379,6 +383,17 @@ def row_to_dict_MDD_DEVICE_POST(row, mapping, ActorCodes, export_mode="DEVICE_PO
                 "udidi:referenceNumber": c["productNumber"],
                 "udidi:sterile": c["is_sterile"],
                 "udidi:sterilization": c["is_sterilization"],
+                **(
+                    {
+                        "udidi:tradeNames": {
+                            "lsn:name": {
+                                "lsn:language": c["tradeName_lang"],
+                                "lsn:textValue": c["tradeName"]
+                            }
+                        }
+                    }
+                    if c.get("tradeName") and c["tradeName"] != 'N' else {}
+                ),
                 "udidi:criticalWarnings": {
                     "commondi:warning": {
                         "commondi:comments": {
@@ -522,8 +537,6 @@ def row_to_dict_MDR_UDIDI_POST(row, mapping, ActorCodes, export_mode="UDIDI_POST
     return mdr_dict
 
 def marketInfos_to_dict(marketing_status_list, first_market, export_mode="DEVICE_POST"):
-    print("★★★ Device_mapper.py marketInfos_to_dict() called")
-    print("★★★ export_mode =", export_mode)
     if export_mode == "UDI_DI_POST":
         miKey = "mi"
     elif export_mode == "DEVICE_POST":
@@ -537,8 +550,6 @@ def marketInfos_to_dict(marketing_status_list, first_market, export_mode="DEVICE
             # f"{miKey}:startDate": item["datestart"]
         }
         market_info_list.append(market_info)
-    print("★★★ market_info_list =", market_info_list)
-    print("★★★ first_market =", first_market)
     if first_market and first_market != "N":
 
         if first_market not in [item[f"{miKey}:country"] for item in market_info_list]:

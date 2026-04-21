@@ -71,6 +71,8 @@ def excel_to_df(file_path, sheet_name=None, field_mapping=None):
         dtype={"tc_jsb001": str, "tc_jsb710": str}
     )
 
+    df.columns = df.columns.str.lower()
+
     validate_required_columns(df, field_mapping)
 
     reg_col = field_mapping.get("COMMON", {}).get("reg_type", "tc_jsb030") if field_mapping else "tc_jsb030"

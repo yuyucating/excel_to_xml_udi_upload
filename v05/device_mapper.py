@@ -38,7 +38,7 @@ DEFAULT_FIELD_MAPPING = {
         "marketing_status": "tc_jsb400",
     },
     "MDD": {
-        "basicudi_di": "tc_jsb070",
+        "basicudi_di": "tc_jsb630",
         "critical_warning": "tc_jsb730",
         "certificate_revision": "tc_jsb180",
         "certificate_expiry": "tc_jsb710",

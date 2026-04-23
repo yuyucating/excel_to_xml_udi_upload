@@ -25,7 +25,7 @@ class UDIUploadUI:
         self.root.minsize(640, 360)
 
         self.app_dir = get_app_dir()
-        self.settings_file = os.path.join(self.app_dir, "app_settings.json")
+        self.settings_file = os.path.join(self.app_dir, "app_settings.json") # 組合路徑
         self.settings = self.load_settings()
 
         self.excel_path = tk.StringVar()
@@ -45,7 +45,9 @@ class UDIUploadUI:
             "COMMON": {
                 "reg_type": "tc_jsb030",
                 "risk_class": "tc_jsb080",
-                "model": "tc_jsb200",
+                # "model": "tc_jsb200",
+                "trade_name": "tc_jsb200",
+                "trade_name_lang": "tc_jsb210",
                 "certificate_no": "tc_jsb170",
                 "animal_tissues_cells": "tc_jsb360",
                 "human_tissues_cells": "tc_jsb350",
@@ -64,10 +66,9 @@ class UDIUploadUI:
                 "pi_manufacturing_date": "tc_jsb2421",
                 "pi_expiration_date": "tc_jsb2431",
                 "product_number": "tc_jsb000",
-                "sterile": "tc_jsb743",
+                "device_name": "tc_jsb700",
                 "sterilization": "tc_jsb742",
-                "trade_name": "tc_jsb200",
-                "trade_name_lang": "tc_jsb210",
+                "sterile": "tc_jsb743",
                 "number_of_reuses": "tc_jsb744",
                 "base_quantity": "tc_jsb230",
                 "latex": "tc_jsb550",
@@ -78,7 +79,7 @@ class UDIUploadUI:
                 "marketing_status": "tc_jsb400",
             },
             "MDD": {
-                "basicudi_di": "tc_jsb630", # 2026-03-26// The original default was tc_jsb070, but it has been changed to tc_jsb630
+                "eudamed_di": "tc_jsb630", # 2026-03-26// The original default was tc_jsb070, but it has been changed to tc_jsb630
                 "critical_warning": "tc_jsb730",
                 "certificate_revision": "tc_jsb180",
                 "certificate_expiry": "tc_jsb710"
@@ -491,7 +492,8 @@ class UDIUploadUI:
         common_fields = [
             ("reg_type", "法規類型"),
             ("risk_class", "風險等級"),
-            ("model", "Model"),
+            #("model", "Model"),
+            ("device_name", "Device Name"),
             ("certificate_no", "Certificate Number"),
             ("animal_tissues_cells", "Animal Tissues / Cells"),
             ("human_tissues_cells", "Human Tissues / Cells"),
@@ -525,7 +527,7 @@ class UDIUploadUI:
         ]
 
         mdd_fields = [
-            ("basicudi_di", "Basic UDI-DI"),
+            ("eudamed_di", "EUDAMED-DI"),
             ("critical_warning", "Critical Warning"),
             ("certificate_revision", "Certificate Revision"),
             ("certificate_expiry", "Certificate Expiry"),

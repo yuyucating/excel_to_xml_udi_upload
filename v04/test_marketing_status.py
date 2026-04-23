@@ -6,14 +6,19 @@ def text_to_marketing_status_list(marketing_status_description):
     print(marketing_status_list)
     result = []
     for status in marketing_status_list:
+        datestart = None
+        dateend = None
         if "," not in status:
-            country = toISOcountry(status.strip())
-            datestart = None
-            dateend = None
+            country = toISOcountry(status.strip())  
         else:
             country = toISOcountry(status.split(",")[0].strip())
-            date_range = status.split(",")[1].replace("From ", "").replace(" To ", "/") if status.split(",")[1] else None
-            datestart, dateend = date_range.split("/") if date_range else None
+
+            if "from" in status.lower():
+                datestart = status.split(",")[1].split("To")[0].replace("From ", "").strip() if len(status.split(",")) > 1 else None
+
+            if "to" in status.lower():
+                dateend = status.split(",")[1].split("To")[1].strip() if len(status.split(",")) > 1 else None
+
         result.append({"country": country, "datestart": datestart, "dateend": dateend})
     
     return result
@@ -45,6 +50,16 @@ def toISOcountry(country_name):
         "愛爾蘭": "IE",
         "波蘭": "PL",
         "奧地利": "AT",
+        "澳洲": "AU",
+        "澳大利亞": "AU",
+        "加拿大": "CA",
+        "美國": "US",
+        "日本": "JP",
+        "韓國": "KR",
+        "中國": "CN",
+        "台灣": "TW",
+        "新加坡": "SG",
+        "新西蘭": "NZ",
         "捷克": "CZ",
         "匈牙利": "HU",
         "希臘": "GR",
@@ -74,6 +89,15 @@ def toISOcountry(country_name):
         "ireland": "IE",
         "poland": "PL",
         "austria": "AT",
+        "australia": "AU",
+        "canada": "CA",
+        "united states": "US",
+        "usa": "US",
+        "new zealand": "NZ",
+        "japan": "JP",
+        "south korea": "KR",
+        "china": "CN",
+        "taiwan": "TW",
         "czechia": "CZ",
         "czech republic": "CZ",
         "hungary": "HU",

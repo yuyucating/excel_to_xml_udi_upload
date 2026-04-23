@@ -52,7 +52,7 @@ def validate_required_columns(df, field_mapping=None):
 
     required_columns = []
     for section, key in DEFAULT_REQUIRED_FIELD_KEYS:
-        col = mapping.get(section, {}).get(key)
+        col = mapping.get(section, {}).get(key).lower()
         if col:
             required_columns.append(col)
 
@@ -60,6 +60,51 @@ def validate_required_columns(df, field_mapping=None):
     if missing:
         raise ValueError(f"Excel 缺少必要欄位: {', '.join(missing)}")
 
+def validate_marketing_status_fields(df, field_mapping=None):
+    """
+    驗證 tc_jsb390 (first_market) 和 tc_jsb400 (marketing_status) 
+    不能為 "N"
+    
+    Args:
+        df: pandas DataFrame
+        field_mapping: 欄位對應字典
+    
+    Raises:
+        ValueError: 當欄位值為 "N" 時
+    """
+    mapping = field_mapping.get("COMMON", {}) if field_mapping else {}
+    
+    first_market_col = mapping.get("first_market", "tc_jsb390")
+    marketing_status_col = mapping.get("marketing_status", "tc_jsb400")
+    
+    error_messages = []
+    
+    # 檢查 tc_jsb390 (first_market)
+    if first_market_col in df.columns:
+        # 將值轉換為字符串並轉大寫進行比較
+        invalid_mask = df[first_market_col].astype(str).str.strip().str.upper() == "N"
+        invalid_rows = df[invalid_mask]
+        if not invalid_rows.empty:
+            # 加 2 是因為 DataFrame 索引從 0 開始，但 Excel 列從 1 開始，加上標題列
+            row_numbers = (invalid_rows.index + 2).tolist()
+            error_messages.append(
+                f"欄位 '{first_market_col}' (First Marketing Status) 包含無效值 'N'，"
+                f"位於 Excel 第 {row_numbers} 列。此欄位不能為 'N'。"
+            )
+    
+    # 檢查 tc_jsb400 (marketing_status)
+    if marketing_status_col in df.columns:
+        invalid_mask = df[marketing_status_col].astype(str).str.strip().str.upper() == "N"
+        invalid_rows = df[invalid_mask]
+        if not invalid_rows.empty:
+            row_numbers = (invalid_rows.index + 2).tolist()
+            error_messages.append(
+                f"欄位 '{marketing_status_col}' (Marketing Status Description) 包含無效值 'N'，"
+                f"位於 Excel 第 {row_numbers} 列。此欄位不能為 'N'。"
+            )
+    
+    if error_messages:
+        raise ValueError("\n".join(error_messages))
 
 def excel_to_df(file_path, sheet_name=None, field_mapping=None):
     if sheet_name is None:
@@ -74,6 +119,8 @@ def excel_to_df(file_path, sheet_name=None, field_mapping=None):
     df.columns = df.columns.str.lower()
 
     validate_required_columns(df, field_mapping)
+
+    validate_marketing_status_fields(df, field_mapping)
 
     reg_col = field_mapping.get("COMMON", {}).get("reg_type", "tc_jsb030") if field_mapping else "tc_jsb030"
     risk_col = field_mapping.get("COMMON", {}).get("risk_class", "tc_jsb080") if field_mapping else "tc_jsb080"

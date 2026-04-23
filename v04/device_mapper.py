@@ -14,7 +14,8 @@ DEFAULT_FIELD_MAPPING = {
         "administering": "tc_jsb130",
         "certificate_no": "tc_jsb170",
         "emdn_code": "tc_jsb190",
-        "model": "tc_jsb200", # 測試 1401
+        # "model": "tc_jsb200", # 測試 1401
+        "device_name": "tc_jsb700",
         "trade_name": "tc_jsb200",
         "trade_name_lang": "tc_jsb210",
         "base_quantity": "tc_jsb230",
@@ -38,7 +39,7 @@ DEFAULT_FIELD_MAPPING = {
         "number_of_reuses": "tc_jsb744",
     },
     "MDD": {
-        "basicudi_di": "tc_jsb630",
+        "eudamed_di": "tc_jsb630",
         "certificate_revision": "tc_jsb180",
         "certificate_expiry": "tc_jsb710",
         "critical_warning": "tc_jsb730",
@@ -120,7 +121,7 @@ def build_common_fields(row, mapping):
 
     return {
         "riskClass": str(risk_class).upper().replace(" ", "_") if pd.notna(risk_class) else None,
-        "model": get_mapped_value(row, mapping, "COMMON", "model"),
+        "device_name": get_mapped_value(row, mapping, "COMMON", "device_name"),
         "certificate_no": safe_str(get_mapped_value(row, mapping, "COMMON", "certificate_no")),
         "is_animalTissuesCells": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "animal_tissues_cells")),
         "is_humanTissuesCells": yn_to_bool_str(get_mapped_value(row, mapping, "COMMON", "human_tissues_cells")),
@@ -185,7 +186,8 @@ def row_to_dict_MDR_DEVICE_POST(row, mapping, ActorCodes, export_mode="DEVICE_PO
             "device:MDRBasicUDI": {
                 "@xsi:type": "device:MDRBasicUDIType",
                 "basicudi:riskClass": 'CLASS_'+risk_lv,
-                "basicudi:model": c["model"],
+                # "basicudi:model": c["model"],
+                "basicudi:name": c["device_name"],
                 "basicudi:identifier": {
                     "commondi:DICode": b_di_code,
                     "commondi:issuingEntityCode": b_entity
@@ -336,11 +338,11 @@ def row_to_dict_MDR_DEVICE_POST(row, mapping, ActorCodes, export_mode="DEVICE_PO
 
 def row_to_dict_MDD_DEVICE_POST(row, mapping, ActorCodes, export_mode="DEVICE_POST"):
     c = build_common_fields(row, mapping)
-    b_di_code = safe_str(get_mapped_value(row, mapping, "MDD", "basicudi_di"))
+    b_di_code = safe_str(get_mapped_value(row, mapping, "MDD", "eudamed_di"))
     b_entity = "EUDAMED" # modified to use EUDAMED as issuing entity for MDD - 2026-03-26
     MFActorCode = ActorCodes.get("MFActorCode") # modified for mdi Europa GmbH - 2026-03-19
     ARActorCode = ActorCodes.get("ARActorCode") # modified for mdi Europa GmbH - 2026-03-19
-    basicudi = safe_str(get_mapped_value(row, mapping, "MDD", "basicudi_di"))
+    eudameddi = safe_str(get_mapped_value(row, mapping, "MDD", "eudamed_di"))
 
     print("★ tradeName_lang:", c["tradeName_lang"])
     print("★ tradeName:", c["tradeName"])
@@ -375,7 +377,7 @@ def row_to_dict_MDD_DEVICE_POST(row, mapping, ActorCodes, export_mode="DEVICE_PO
                     "commondi:code": c["udi_status"]
                 },
                 "udidi:basicUDIIdentifier": {
-                    "commondi:DICode": basicudi, # modified to use Basic UDI - 2026-03-19
+                    "commondi:DICode": eudameddi, # modified to use EUDAMED-DI - 2026-04-23
                     "commondi:issuingEntityCode": b_entity
                 },
                 
@@ -435,7 +437,9 @@ def row_to_dict_MDD_DEVICE_POST(row, mapping, ActorCodes, export_mode="DEVICE_PO
             },
             "device:MDEUDI": {
                 "basicudi:riskClass": 'CLASS_'+risk_lv,
-                "basicudi:model": c["model"],
+                "basicudi:modelName": {
+                    "commondi:name": c["device_name"]
+                },
                 "basicudi:identifier": {
                     "commondi:DICode": b_di_code,
                     "commondi:issuingEntityCode": b_entity

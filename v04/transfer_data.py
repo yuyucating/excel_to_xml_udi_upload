@@ -120,7 +120,7 @@ def excel_to_df(file_path, sheet_name=None, field_mapping=None):
 
     validate_required_columns(df, field_mapping)
 
-    validate_marketing_status_fields(df, field_mapping)
+    # validate_marketing_status_fields(df, field_mapping)
 
     reg_col = field_mapping.get("COMMON", {}).get("reg_type", "tc_jsb030") if field_mapping else "tc_jsb030"
     risk_col = field_mapping.get("COMMON", {}).get("risk_class", "tc_jsb080") if field_mapping else "tc_jsb080"

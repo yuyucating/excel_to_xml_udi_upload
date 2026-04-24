@@ -352,9 +352,9 @@ def row_to_dict_MDD_DEVICE_POST(row, mapping, ActorCodes, export_mode="DEVICE_PO
     warning_value = "CW010" if critical_warnings == "Consult Instruction for Use" else None
     
     certificate_expiry_mdd = safe_str(get_mapped_value(row, mapping, "MDD", "certificate_expiry")).replace("/", "-") if pd.notna(get_mapped_value(row, mapping, "MDD", "certificate_expiry")) else None
-    # certificate_expiry_raw = get_mapped_value(row, mapping, "MDD", "certificate_expiry")
-    # certificate_expiry_mdd = str(certificate_expiry_raw).split(" ")[0] if pd.notna(certificate_expiry_raw) else None
-    
+    if len(certificate_expiry_mdd)>10:
+        certificate_expiry_mdd = certificate_expiry_mdd.split(" ")[0]
+   
     mnb_actor_code = "2195"
     certificate_revision = safe_str(get_mapped_value(row, mapping, "MDD", "certificate_revision"))
     
@@ -374,7 +374,7 @@ def row_to_dict_MDD_DEVICE_POST(row, mapping, ActorCodes, export_mode="DEVICE_PO
                     "commondi:issuingEntityCode": c["i_Entity"]
                 },
                 "udidi:status": {
-                    "commondi:code": c["udi_status"]
+                    "commondi:code": c["udi_status"] if market_infos else "NOT_INTENDED_FOR_EU_MARKET"
                 },
                 "udidi:basicUDIIdentifier": {
                     "commondi:DICode": eudameddi, # modified to use EUDAMED-DI - 2026-04-23
@@ -545,6 +545,7 @@ def marketInfos_to_dict(marketing_status_list, first_market, export_mode="DEVICE
         miKey = "mi"
     elif export_mode == "DEVICE_POST":
         miKey = "marketinfo"
+
     market_info_list = []
     for item in marketing_status_list:
         if item["country"] == "N": continue
